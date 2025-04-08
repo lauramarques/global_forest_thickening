@@ -141,7 +141,7 @@ global_drivers |>
   theme_void()
 
 
-# global csink funtion ----
+# Global csink ----
 # For each forest grid in the map:
 # 1. Sample QMD from its distribution in the total dataset which includes all stands (with and without info about biomass) → QMDj and log-transform
 # 2. Estimate mean N given QMDj and two consecutive years (e.g. 2000, 2001) from the LMM relating N and QMD using the total dataset
@@ -150,9 +150,9 @@ global_drivers |>
 # 4. Repeat steps 1-3 multiple times. This gives the distribution of mature forest biomass change per unit area. 
 # the function csink includes the steps 1-3. We run it 1e5 calling the fc using purrr::map_dfr
 
-# load data
-data_fil_biomes <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biomes.rds")) |>
-  filter(year > 1980)
+## Load data ----------------
+data_fil_biomes <- readRDS(here::here("data/data_fil_biomes.rds")) |>
+  filter(year > 1980)   # XXX why this filter?
 
 data_all <- data_fil_biomes
 
@@ -160,7 +160,9 @@ data_biomass <- data_fil_biomes |>
   filter(biomass != "NA") |>
   mutate(NQMD2 = density * QMD^2)
 
-fit1 = lmer(logDensity ~ scale(logQMD) + 
+## Fit self-thinning relationship ---------------------
+# modified by time and environmental covariates
+fit_selfthinning = lmer(logDensity ~ scale(logQMD) + 
               scale(year) * scale(ai) + 
               scale(year) * scale(ndep) + 
               scale(year) * scale(ORGC) + 
@@ -168,35 +170,45 @@ fit1 = lmer(logDensity ~ scale(logQMD) +
               (1|dataset/plotID) + (1|species),  
             data = data_all)
 
-coef_intercept <- summary(fit1)$coefficient[1,1]
-coef_logQMD <- summary(fit1)$coefficient[2,1]
-coef_year <- summary(fit1)$coefficient[3,1]
-coef_ai_mean <- summary(fit1)$coefficient[4,1]
-coef_ai_sd <- summary(fit1)$coefficient[4,2]
-coef_ndep_mean <- summary(fit1)$coefficient[5,1]
-coef_ndep_sd <- summary(fit1)$coefficient[5,2]
-coef_orgc_mean <- summary(fit1)$coefficient[6,1]
-coef_orgc_sd <- summary(fit1)$coefficient[6,2]
-coef_pbr_mean <- summary(fit1)$coefficient[7,1]
-coef_pbr_sd <- summary(fit1)$coefficient[7,2]
-coef_aiyear_mean <- summary(fit1)$coefficient[8,1]
-coef_aiyear_sd <- summary(fit1)$coefficient[8,2]
-coef_ndepyear_mean <- summary(fit1)$coefficient[9,1]
-coef_ndepyear_sd <- summary(fit1)$coefficient[9,2]
-coef_orgcyear_mean <- summary(fit1)$coefficient[10,1]
-coef_orgcyear_sd <- summary(fit1)$coefficient[10,2]
-coef_pbryear_mean <- summary(fit1)$coefficient[11,1]
-coef_pbryear_sd <- summary(fit1)$coefficient[11,2]
+coef_intercept <- summary(fit_selfthinning)$coefficient[1,1]
+coef_logQMD <- summary(fit_selfthinning)$coefficient[2,1]  # xxx why SE not used?
+coef_year <- summary(fit_selfthinning)$coefficient[3,1]  # xxx why SE not used?
+coef_ai_mean <- summary(fit_selfthinning)$coefficient[4,1]
+coef_ai_sd <- summary(fit_selfthinning)$coefficient[4,2]
+coef_ndep_mean <- summary(fit_selfthinning)$coefficient[5,1]
+coef_ndep_sd <- summary(fit_selfthinning)$coefficient[5,2]
+coef_orgc_mean <- summary(fit_selfthinning)$coefficient[6,1]
+coef_orgc_sd <- summary(fit_selfthinning)$coefficient[6,2]
+coef_pbr_mean <- summary(fit_selfthinning)$coefficient[7,1]
+coef_pbr_sd <- summary(fit_selfthinning)$coefficient[7,2]
+coef_aiyear_mean <- summary(fit_selfthinning)$coefficient[8,1]
+coef_aiyear_sd <- summary(fit_selfthinning)$coefficient[8,2]
+coef_ndepyear_mean <- summary(fit_selfthinning)$coefficient[9,1]
+coef_ndepyear_sd <- summary(fit_selfthinning)$coefficient[9,2]
+coef_orgcyear_mean <- summary(fit_selfthinning)$coefficient[10,1]
+coef_orgcyear_sd <- summary(fit_selfthinning)$coefficient[10,2]
+coef_pbryear_mean <- summary(fit_selfthinning)$coefficient[11,1]
+coef_pbryear_sd <- summary(fit_selfthinning)$coefficient[11,2]
 
-fit2 = lmer(biomass ~ NQMD2 + 0 + (1|dataset/plotID), data = data_biomass, na.action = "na.exclude")
+## Fit relationship of biomass ~ N*QMD^2 ---------------------
+fit_biomass = lmer(
+  biomass ~ NQMD2 + 0 + (1|dataset/plotID), 
+  data = data_biomass, 
+  na.action = "na.exclude"
+  )
 
-a_mean <- summary(fit2)$coefficient[1,1]
-a_sd <- summary(fit2)$coefficient[1,2]
+# XXX Warning from this fit:
+# Warning messages:
+# 1: Some predictor variables are on very different scales: consider rescaling 
+# 2: Some predictor variables are on very different scales: consider rescaling 
 
-global_drivers <- readRDS(file.path(here::here(), "/data/inputs/global_drivers.rds")) |> 
-  drop_na()
+a_mean <- summary(fit_biomass)$coefficient[1,1]
+a_sd <- summary(fit_biomass)$coefficient[1,2]
 
-#global_drivers <- global_drivers[1:2,] # test
+# global_drivers <- readRDS(file.path(here::here(), "/data/inputs/global_drivers.rds")) |> 
+#   drop_na()
+
+# global_drivers <- global_drivers[1:2,] # test
 
 data_to_iterate <- global_drivers
 data_all <- data_fil_biomes

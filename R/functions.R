@@ -88,6 +88,7 @@ plot_map <- function(data){
 # plot map ai
 library(viridis)
 library(wesanderson)
+
 plot_map_ai <- function(data){
   library(rnaturalearth)
   library(rnaturalearthdata)
@@ -114,46 +115,46 @@ plot_map_ai <- function(data){
 # prepare_stand_data
 from_species_data <- function(data){
   
-# get name of dataset
-datanm <- deparse(substitute(data))
-
-# identify dominant species
-dom_species <- data |>
-  group_by(plotID, year) |> 
-  slice_max(ba, with_ties = FALSE) |> 
-  ungroup() |> 
-  select(plotID, year, species) 
-
-# Aggregate data at stand level
-data_agg <- data |> 
-  group_by(plotID, plotsize, lon, lat, year) |> 
-  summarise(density=sum(density,na.rm=T),
-            ba=sum(ba,na.rm=T),
-            dbh=mean(dbh,na.rm=T),
-            biomass=sum(biomass,na.rm=T)) |>
-  ungroup() |>
-  # calculate QMD and logs
-  mutate(QMD=sqrt(ba/(0.0000785*density)),
-         logDensity = log(density),
-         logQMD = log(QMD),
-         dataset=datanm) |> 
-  # calculate period lengths
-  arrange(plotID, year) |> 
-  group_by(plotID) |> 
-  mutate(period=year-lag(year)) |> 
-  relocate(period, .after=year) |>
-  # calculate basal area increment
-  mutate(ba_inc=(ba-lag(ba))/period) |> 
-  relocate(ba_inc, .after=ba) |>
-  # calculate number of censuses
-  mutate(n_census=n()) |>
-  ungroup() |>
-  filter(density>0) |>
-# join dominant species to data
-  left_join(dom_species) |>
-  ungroup()
-
-return(data_agg)
+  # get name of dataset
+  datanm <- deparse(substitute(data))
+  
+  # identify dominant species
+  dom_species <- data |>
+    group_by(plotID, year) |> 
+    slice_max(ba, with_ties = FALSE) |> 
+    ungroup() |> 
+    select(plotID, year, species) 
+  
+  # Aggregate data at stand level
+  data_agg <- data |> 
+    group_by(plotID, plotsize, lon, lat, year) |> 
+    summarise(density=sum(density,na.rm=T),
+              ba=sum(ba,na.rm=T),
+              dbh=mean(dbh,na.rm=T),
+              biomass=sum(biomass,na.rm=T)) |>
+    ungroup() |>
+    # calculate QMD and logs
+    mutate(QMD=sqrt(ba/(0.0000785*density)),
+           logDensity = log(density),
+           logQMD = log(QMD),
+           dataset=datanm) |> 
+    # calculate period lengths
+    arrange(plotID, year) |> 
+    group_by(plotID) |> 
+    mutate(period=year-lag(year)) |> 
+    relocate(period, .after=year) |>
+    # calculate basal area increment
+    mutate(ba_inc=(ba-lag(ba))/period) |> 
+    relocate(ba_inc, .after=ba) |>
+    # calculate number of censuses
+    mutate(n_census=n()) |>
+    ungroup() |>
+    filter(density>0) |>
+  # join dominant species to data
+    left_join(dom_species) |>
+    ungroup()
+  
+  return(data_agg)
 }
 
 # prepare_stand_data
@@ -304,106 +305,106 @@ from_tree_data <- function(data){
 # add coords and biomes
 biomes_coords_utm <- function(data){
   
-# reprojecting data to lon/lat (epsg:4326)
-coords <- data |>
-  rename(lonUTM = lon,
-         latUTM = lat) |>
-  select(lonUTM,latUTM) |>
-  as.data.frame()
-
-# sf transformation of df sets coordinate columns and projection epsg
-if(deparse(substitute(data)) == "data_nfi_spain") {
-  coords_sf <- sf::st_as_sf(
-    coords, 
-    coords = c("lonUTM", "latUTM"),
-    crs = "epsg:25830") #25832 #32630 #EPSG:25830 epsg:32630
-}
-
-if(deparse(substitute(data)) == "data_nwfva") {
-  coords_sf <- sf::st_as_sf(
-    coords, 
-    coords = c("lonUTM", "latUTM"),
-    crs = "epsg:31467") #25832 #32630
-}
-
-if(deparse(substitute(data)) == "data_unito") {
-  coords_sf <- sf::st_as_sf(
-    coords, 
-    coords = c("lonUTM", "latUTM"),
-    crs = "epsg:32632") 
-}
-
-if(deparse(substitute(data)) == "data_forst" |
-   deparse(substitute(data)) == "data_lwf"  ) {
-  coords_sf <- sf::st_as_sf(
-    coords, 
-    coords = c("lonUTM", "latUTM"),
-    crs = "epsg:25832") #25832 #32630 #31467
-}
-
-# transformation to lon/lat coordinate system
-coords_sf_lonlat <- coords_sf |>
-  st_transform(crs = "epsg:4326")
-
-# return to simple data frame
-coords_lonlat <- coords_sf_lonlat |>
-  dplyr::as_tibble() |>
-  dplyr::mutate(
-    lon = st_coordinates(geometry)[, "X"],
-    lat = st_coordinates(geometry)[, "Y"]
-  ) |>
-  dplyr::select(-geometry)
-
-# join latlon to stand data
-data_agg <- data |>
-  rename(lonUTM = lon,
-         latUTM = lat) |>
-  cbind(coords_lonlat) 
-
-# Identify biomes for each plot using coordinates
-# WWF Ecoregions data
-wwf_eco <- terra::vect(
-  file.path(here::here(), "/data/wwf/wwf_terr_ecos.shp")
-)
-
-# extract coordinates from data
-coordinates <- data_agg |>
-  select(lon, lat) 
-
-# extract map values for coordinates
-coordinates$wwf <- terra::extract(wwf_eco, coordinates)
-
-# Unnest the data.frames
-coordinates <- coordinates |>
-  unnest(cols = c(wwf)) |> 
-  # select variables
-  select(lon, lat, BIOME) |> 
-  rename(biomeID = BIOME) |> 
-  # take unique rows of coordinates a
-  distinct()
-
-# read legend for wwf biomes
-legend_wwf <- read.csv(file.path(here::here(), "/data/wwf/legend.csv")) 
-
-# Join biomes to data
-data_agg <- data_agg |> 
-  left_join(coordinates, by = c("lon", "lat")) |>
-  left_join(legend_wwf, by = "biomeID") |>
-  drop_na(biomeID) |>
-  drop_na(biome) |> 
-  mutate(biome = ifelse(biome=="Tundra", "Boreal Forests/Taiga",biome),
-         biomeID = ifelse(biomeID==11, 6, biomeID)) |>
-  distinct() |>
-  filter(type=="Forest")
+  # reprojecting data to lon/lat (epsg:4326)
+  coords <- data |>
+    rename(lonUTM = lon,
+           latUTM = lat) |>
+    select(lonUTM,latUTM) |>
+    as.data.frame()
   
-# Select variables to join datasets
-data_agg <- data_agg |>
-  select(dataset, country, plotID, plotsize, lon, lat, census, year, management, years_since_management, ba, dbh, QMD, density, logQMD, logDensity, period, ba_inc, biomass, n_census, species, biomeID, biome, type) %>%
-  relocate(any_of(c("dataset", "country","plotID", "plotsize","lon", "lat", "census", "year","management", "years_since_management","ba", "dbh","QMD", "density", "logQMD", "logDensity", "period", "ba_inc", "biomass","n_census", "species","biomeID", "biome", "type"))) |>
-  mutate(plotID = as.character(plotID),
-         census = as.character(census))
-
-return(data_agg)
+  # sf transformation of df sets coordinate columns and projection epsg
+  if(deparse(substitute(data)) == "data_nfi_spain") {
+    coords_sf <- sf::st_as_sf(
+      coords, 
+      coords = c("lonUTM", "latUTM"),
+      crs = "epsg:25830") #25832 #32630 #EPSG:25830 epsg:32630
+  }
+  
+  if(deparse(substitute(data)) == "data_nwfva") {
+    coords_sf <- sf::st_as_sf(
+      coords, 
+      coords = c("lonUTM", "latUTM"),
+      crs = "epsg:31467") #25832 #32630
+  }
+  
+  if(deparse(substitute(data)) == "data_unito") {
+    coords_sf <- sf::st_as_sf(
+      coords, 
+      coords = c("lonUTM", "latUTM"),
+      crs = "epsg:32632") 
+  }
+  
+  if(deparse(substitute(data)) == "data_forst" |
+     deparse(substitute(data)) == "data_lwf"  ) {
+    coords_sf <- sf::st_as_sf(
+      coords, 
+      coords = c("lonUTM", "latUTM"),
+      crs = "epsg:25832") #25832 #32630 #31467
+  }
+  
+  # transformation to lon/lat coordinate system
+  coords_sf_lonlat <- coords_sf |>
+    st_transform(crs = "epsg:4326")
+  
+  # return to simple data frame
+  coords_lonlat <- coords_sf_lonlat |>
+    dplyr::as_tibble() |>
+    dplyr::mutate(
+      lon = st_coordinates(geometry)[, "X"],
+      lat = st_coordinates(geometry)[, "Y"]
+    ) |>
+    dplyr::select(-geometry)
+  
+  # join latlon to stand data
+  data_agg <- data |>
+    rename(lonUTM = lon,
+           latUTM = lat) |>
+    cbind(coords_lonlat) 
+  
+  # Identify biomes for each plot using coordinates
+  # WWF Ecoregions data
+  wwf_eco <- terra::vect(
+    file.path(here::here(), "/data/wwf/wwf_terr_ecos.shp")
+  )
+  
+  # extract coordinates from data
+  coordinates <- data_agg |>
+    select(lon, lat) 
+  
+  # extract map values for coordinates
+  coordinates$wwf <- terra::extract(wwf_eco, coordinates)
+  
+  # Unnest the data.frames
+  coordinates <- coordinates |>
+    unnest(cols = c(wwf)) |> 
+    # select variables
+    select(lon, lat, BIOME) |> 
+    rename(biomeID = BIOME) |> 
+    # take unique rows of coordinates a
+    distinct()
+  
+  # read legend for wwf biomes
+  legend_wwf <- read.csv(file.path(here::here(), "/data/wwf/legend.csv")) 
+  
+  # Join biomes to data
+  data_agg <- data_agg |> 
+    left_join(coordinates, by = c("lon", "lat")) |>
+    left_join(legend_wwf, by = "biomeID") |>
+    drop_na(biomeID) |>
+    drop_na(biome) |> 
+    mutate(biome = ifelse(biome=="Tundra", "Boreal Forests/Taiga",biome),
+           biomeID = ifelse(biomeID==11, 6, biomeID)) |>
+    distinct() |>
+    filter(type=="Forest")
+    
+  # Select variables to join datasets
+  data_agg <- data_agg |>
+    select(dataset, country, plotID, plotsize, lon, lat, census, year, management, years_since_management, ba, dbh, QMD, density, logQMD, logDensity, period, ba_inc, biomass, n_census, species, biomeID, biome, type) %>%
+    relocate(any_of(c("dataset", "country","plotID", "plotsize","lon", "lat", "census", "year","management", "years_since_management","ba", "dbh","QMD", "density", "logQMD", "logDensity", "period", "ba_inc", "biomass","n_census", "species","biomeID", "biome", "type"))) |>
+    mutate(plotID = as.character(plotID),
+           census = as.character(census))
+  
+  return(data_agg)
 }
 
 # add coords and biomes
@@ -498,47 +499,47 @@ ai_coords_latlon <- function(data){
 
 lai_coords_latlon <- function(data){
 
-coordinates0 <- data |>
-  select(lon, lat) |>
-  as.data.frame()
-  
-for (y in 2000:2023) {
-
-  nc_all <- list.files(path = paste0("~/data/lai/",y), full.names = TRUE, pattern = "\\.nc$") |>
-    lapply(rast) 
-  
-  # extract coordinates from data
-  data_coord <- data |>
+  coordinates0 <- data |>
     select(lon, lat) |>
     as.data.frame()
-  
-  for (i in 1:length(nc_all)) {
-    # extract map values for coordinates
-    i_lai <- terra::extract(nc_all[[i]]$lai , data_coord[,1:2], xy=FALSE, ID=FALSE)
-    colnames(i_lai) <-paste0('lai', i)
-    data_coord <- cbind(data_coord, i_lai)
-  }
-  
-  lai_max <- data_coord[,3:length(data_coord)] |>
-    summarise(across(everything(), sum, na.rm=T)) |>
-    which.max() |> as.numeric() 
     
-  data_coord <- data_coord[,lai_max + 2] |>
-    as.data.frame()
-  colnames(data_coord) <-paste0('lai_', y)
-
-  coordinates0 <- cbind(coordinates0, data_coord) 
+  for (y in 2000:2023) {
   
-} 
-  coordinates <- coordinates0 |>
-    mutate(lai = rowMeans(select(coordinates0, lai_2000:lai_2023))) |>
-    select(lai)
+    nc_all <- list.files(path = paste0("~/data/lai/",y), full.names = TRUE, pattern = "\\.nc$") |>
+      lapply(rast) 
+    
+    # extract coordinates from data
+    data_coord <- data |>
+      select(lon, lat) |>
+      as.data.frame()
+    
+    for (i in 1:length(nc_all)) {
+      # extract map values for coordinates
+      i_lai <- terra::extract(nc_all[[i]]$lai , data_coord[,1:2], xy=FALSE, ID=FALSE)
+      colnames(i_lai) <-paste0('lai', i)
+      data_coord <- cbind(data_coord, i_lai)
+    }
+    
+    lai_max <- data_coord[,3:length(data_coord)] |>
+      summarise(across(everything(), sum, na.rm=T)) |>
+      which.max() |> as.numeric() 
+      
+    data_coord <- data_coord[,lai_max + 2] |>
+      as.data.frame()
+    colnames(data_coord) <-paste0('lai_', y)
   
-  # Join aridity index to data
-  data_agg <- data |> 
-    bind_cols(coordinates) 
-  
-  return(data_agg)
+    coordinates0 <- cbind(coordinates0, data_coord) 
+    
+  } 
+    coordinates <- coordinates0 |>
+      mutate(lai = rowMeans(select(coordinates0, lai_2000:lai_2023))) |>
+      select(lai)
+    
+    # Join aridity index to data
+    data_agg <- data |> 
+      bind_cols(coordinates) 
+    
+    return(data_agg)
 }
 
 # add coords and ndep 
@@ -666,7 +667,7 @@ orgc_coords_latlon <- function(data){
 # global C sink
 
 csink <- function(data_all, a_mean, a_sd){
-# Bootstrap with loop ...
+  # Bootstrap with loop ...
 
   # 1. Sample QMD from its distribution in the data => QMDj
   #QMDj <- sample(data_all$QMD, 1)
@@ -703,113 +704,9 @@ csink <- function(data_all, a_mean, a_sd){
                 ak = ak, 
                 dB_Mg_ha = dB * 10^-3) 
 
-return(out)
+  return(out)
 }
 
-global_drivers <- function(v_biomes_forests){
-  
-  # read aridity index data
-  rasta <- rast("~/data/aridityindex_zomer_2022/Global-AI_ET0_v3_annual/ai_v3_yr.tif")
-  
-  # values are provided as integers, multiplied by 1e-4
-  values(rasta) <- values(rasta) * 1e-4
-  
-  # aggregate to 0.5 deg
-  rasta_agg <- aggregate(
-    rasta,
-    fact = res(rasta)[1]^-1*0.5,
-    fun = "mean"
-  )
-  
-  # Crop and mask the raster to the polygon
-  r_masked <- mask(rasta_agg, v_biomes_forests)
-  
-  # Compute cell areas in hectares
-  area_raster <- cellSize(r_masked, unit="ha")
-  
-  # Extract cell areas at these points
-  areas <- extract(area_raster, v_biomes_forests)
-  
-  # Convert the raster to a data frame with coordinates
-  r_df <- as.data.frame(r_masked, xy = TRUE, na.rm = TRUE) |>
-    rename(ai = awi_pm_sr_yr,
-           lon = x,
-           lat = y) 
-  
-  points <- vect(r_df, geom=c("lon", "lat"), crs=crs(r_masked))
-  
-  # Extract cell areas at these points
-  areas <- extract(area_raster, points)
-  
-  r_df <- r_df |>
-    mutate(area_ha = areas[,2]) |>
-    relocate(area_ha, .after = lat)
-  
-  #reset row numbers
-  rownames(r_df) <- NULL
-  
-  r_df <- r_df |>
-    rownames_to_column("sitename")
-  
-  siteinfo <- r_df |>
-    select(sitename, lon, lat) |>
-    as_tibble()
-  
-  # PBR
-  settings_gsde <- list(varnam = c("PBR"), layer = 1:3)
-  
-  df_gsde <- ingest(
-    siteinfo,
-    source    = "gsde",
-    settings  = settings_gsde,
-    dir       = "~/data/soil/shangguan"
-  )
-  
-  df_gsde <- df_gsde |>
-    unnest(cols = data) 
-  
-  # ORGC
-  settings_wise <- get_settings_wise(varnam = c("ORGC"), layer = 1:3)
-  
-  df_wise <- ingest(
-    siteinfo,
-    source    = "wise",
-    settings  = settings_wise,
-    dir       = "~/data/soil/wise"
-  )
-  
-  df_wise <- df_wise |>
-    unnest(cols = data)
-  
-  # Ndep
-  siteinfo <- siteinfo |>
-    mutate(year_start = 1970,
-           year_end = 2009)
-  
-  df_ndep <- ingest(
-    siteinfo,
-    source    = "ndep",
-    timescale = "y",
-    dir       = "~/data/ndep_lamarque/",
-    verbose   = FALSE
-  )
-  
-  df_ndep <- df_ndep |>
-    unnest(cols = data) |>
-    group_by(sitename) |>
-    # Calculate the mean for the last 40 years available (1970 to 2009)
-    summarise(noy = mean(noy, na.rm=T), nhx = mean(nhx, na.rm=T))
-  
-  # Join all data
-  data_agg <- r_df |> 
-    left_join(df_gsde) |>
-    left_join(df_wise) |>
-    left_join(df_ndep) |>
-    mutate(ndep = noy+nhx) |>
-    rename(plotID = sitename)
-  
-  return(data_agg)
-}
 
 # global C sink
 

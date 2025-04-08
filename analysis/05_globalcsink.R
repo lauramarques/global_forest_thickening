@@ -50,13 +50,13 @@ if (!file.exists(filn)){
 global_drivers <- global_drivers |> 
   as_tibble()
 
-# visualisation of drivers
+## Visualisation of drivers --------
 coast <- rnaturalearth::ne_coastline(
   scale = 110,
   returnclass = "sf"
 )
 
-# AI
+### AI ---------------
 global_drivers |> 
   ggplot() +
   geom_raster(
@@ -77,7 +77,7 @@ global_drivers |>
   ) +
   theme_void()
 
-# PBR
+### PBR -----------------
 global_drivers |> 
   ggplot() +
   geom_raster(
@@ -98,7 +98,7 @@ global_drivers |>
   ) +
   theme_void()
 
-# ORGC
+### ORGC -----------------
 global_drivers |> 
   ggplot() +
   geom_raster(
@@ -119,7 +119,7 @@ global_drivers |>
   ) +
   theme_void()
 
-# ndep
+### N-deposition  ---------------------
 global_drivers |> 
   ggplot() +
   geom_raster(

@@ -1,5 +1,6 @@
 csink_global <- function(
-    global_drivers_row, data_all,
+    global_drivers_row, 
+    data_forest_plots,
     coef_ai_mean, coef_ai_sd,
     coef_ndep_mean, coef_ndep_sd,
     coef_orgc_mean, coef_orgc_sd,
@@ -9,9 +10,9 @@ csink_global <- function(
     coef_orgcyear_mean, coef_orgcyear_sd,
     coef_pbryear_mean, coef_pbryear_sd){
   
-  # 1*. Sample the row and het QMD and the random variables
-  random_row_index <- sample(1:nrow(data_all), 1)
-  random_values <- data_all[random_row_index, c("QMD", "species", "dataset", "plotID")]
+  # 1*. Sample the row and the QMD and the random variables
+  random_row_index <- sample(1:nrow(data_forest_plots), 1)
+  random_values <- data_forest_plots[random_row_index, c("QMD", "species", "dataset", "plotID")]
   QMDj <- random_values$QMD
   
   # Sample from the model coefficients for MI, Ndep, ORGC, PBR
@@ -27,11 +28,15 @@ csink_global <- function(
   # 2. Estimate mean N given QMDj using the LMM  (lnN ~ lnQMD + year + 1|...) and two years (for example year = 2000, 2001) => N0, N1.
   # Single new data points for t0 and t1
   
-  # Important: Need to manually scale new predictors using the same means and standard deviations as in data_all
+  # Important: Need to manually scale new predictors using the same means and standard deviations as in data_forest_plots
   # Compute means and standard deviations from the original data
-  means <- colMeans(data_all[, c("logQMD", "year", "ai", "ndep", "ORGC", "PBR")], na.rm = TRUE)
-  sds <- apply(data_all[, c("logQMD", "year", "ai", "ndep", "ORGC", "PBR")], 2, sd, na.rm = TRUE)
+  means <- colMeans(data_forest_plots[, c("logQMD", "year", "ai", "ndep", "ORGC", "PBR")], na.rm = TRUE)
+  sds <- apply(data_forest_plots[, c("logQMD", "year", "ai", "ndep", "ORGC", "PBR")], 2, sd, na.rm = TRUE)
   
+  
+
+  point_t0 <- df_samples[1,]
+    
   # Create newdata with a single row
   point_t0 <- data.frame(
     logQMD = (log(QMDj) - means["logQMD"]) / sds["logQMD"],  

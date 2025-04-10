@@ -17,14 +17,15 @@ library(ingestr)
 library(sf)
 library(purrr)
 library(tidyr)
+library(here)
 
 # Load functions ----
 source(here::here("R/functions.R"))
 source(here::here("R/get_drivers_by_biome.R"))
-
-filn <- here::here("data/global_drivers.rds")
+source(here("R/csink_global.R"))
 
 # Collect global environmental covariates --------------
+filn <- here::here("data/global_drivers.rds")
 if (!file.exists(filn)){
   
   # From the WWF Ecoregions data
@@ -151,74 +152,94 @@ global_drivers |>
 # the function csink includes the steps 1-3. We run it 1e5 calling the fc using purrr::map_dfr
 
 ## Load data ----------------
-data_fil_biomes <- readRDS(here::here("data/data_fil_biomes.rds")) |>
-  filter(year > 1980)   # XXX why this filter?
-
-data_all <- data_fil_biomes
-
-data_biomass <- data_fil_biomes |>
-  filter(biomass != "NA") |>
+data_forest_plots <- readRDS(here::here("data/data_fil_biomes.rds")) |>
+  filter(year > 1980) |>    # XXX why this filter?
   mutate(NQMD2 = density * QMD^2)
+
+# data_all <- data_fil_biomes
+# 
+# data_biomass <- data_fil_biomes |>
+#   mutate(NQMD2 = density * QMD^2)
 
 ## Fit self-thinning relationship ---------------------
 # modified by time and environmental covariates
-fit_selfthinning = lmer(logDensity ~ scale(logQMD) + 
-              scale(year) * scale(ai) + 
-              scale(year) * scale(ndep) + 
-              scale(year) * scale(ORGC) + 
-              scale(year) * scale(PBR) + 
-              (1|dataset/plotID) + (1|species),  
-            data = data_all)
+fit_selfthinning = lmer(
+  logDensity ~ scale(logQMD) + 
+    scale(year) * scale(ai) + 
+    scale(year) * scale(ndep) + 
+    scale(year) * scale(ORGC) + 
+    scale(year) * scale(PBR) + 
+    (1|dataset/plotID) + (1|species),  
+  data = data_fil_biomes
+  )
 
-coef_intercept <- summary(fit_selfthinning)$coefficient[1,1]
-coef_logQMD <- summary(fit_selfthinning)$coefficient[2,1]  # xxx why SE not used?
-coef_year <- summary(fit_selfthinning)$coefficient[3,1]  # xxx why SE not used?
-coef_ai_mean <- summary(fit_selfthinning)$coefficient[4,1]
-coef_ai_sd <- summary(fit_selfthinning)$coefficient[4,2]
-coef_ndep_mean <- summary(fit_selfthinning)$coefficient[5,1]
-coef_ndep_sd <- summary(fit_selfthinning)$coefficient[5,2]
-coef_orgc_mean <- summary(fit_selfthinning)$coefficient[6,1]
-coef_orgc_sd <- summary(fit_selfthinning)$coefficient[6,2]
-coef_pbr_mean <- summary(fit_selfthinning)$coefficient[7,1]
-coef_pbr_sd <- summary(fit_selfthinning)$coefficient[7,2]
-coef_aiyear_mean <- summary(fit_selfthinning)$coefficient[8,1]
-coef_aiyear_sd <- summary(fit_selfthinning)$coefficient[8,2]
-coef_ndepyear_mean <- summary(fit_selfthinning)$coefficient[9,1]
-coef_ndepyear_sd <- summary(fit_selfthinning)$coefficient[9,2]
-coef_orgcyear_mean <- summary(fit_selfthinning)$coefficient[10,1]
-coef_orgcyear_sd <- summary(fit_selfthinning)$coefficient[10,2]
-coef_pbryear_mean <- summary(fit_selfthinning)$coefficient[11,1]
-coef_pbryear_sd <- summary(fit_selfthinning)$coefficient[11,2]
 
 ## Fit relationship of biomass ~ N*QMD^2 ---------------------
 fit_biomass = lmer(
   biomass ~ NQMD2 + 0 + (1|dataset/plotID), 
-  data = data_biomass, 
+  data = data_fil_biomes, 
   na.action = "na.exclude"
   )
 
-# XXX Warning from this fit:
-# Warning messages:
-# 1: Some predictor variables are on very different scales: consider rescaling 
-# 2: Some predictor variables are on very different scales: consider rescaling 
-
 a_mean <- summary(fit_biomass)$coefficient[1,1]
 a_sd <- summary(fit_biomass)$coefficient[1,2]
+
+
+# sample logQMD for each gridcell separately  
+generate_samples_by_gridcell <- function(idx, global_drivers, data_forest_plots, n_qmd){
+  global_drivers |> 
+    slice(idx) |> 
+    slice(rep(1, n_qmd)) |> 
+    mutate(idx_qmd = row_number()) |> 
+    mutate(logQMD = sample(data_forest_plots$logQMD, size = n_qmd))
+}
+
+n_qmd <- 3
+df_samples_qmd <- purrr::map_dfr(
+  as.list(1:5),  # doing it only for three gridcells
+  ~generate_samples_by_gridcell(., global_drivers, data_forest_plots, n_qmd) 
+)
+
+# All get the sampled coefficients of the two fitted models
+# Sample coefficients independently
+n_coefs <- 2
+b_ai <- rnorm(n_coefs, coef_ai_mean, coef_ai_sd)
+
+# Repeat and tag
+df_samples_coef <- map_dfr(b_ai, function(b_ai) {
+  df_samples_qmd |> 
+    mutate(b_ai = b_ai)
+})
+
+
+df_samples <- df_samples |> 
+  mutate(
+    b_ai = rnorm(1, coef_ai_mean, coef_ai_sd),
+    b_ndep = rnorm(1, coef_ndep_mean, coef_ndep_sd),
+    b_orgc = rnorm(1, coef_orgc_mean, coef_orgc_sd),
+    b_pbr = rnorm(1, coef_pbr_mean, coef_pbr_sd),
+    b_aiyear = rnorm(1, coef_aiyear_mean, coef_aiyear_sd),
+    b_ndepyear = rnorm(1, coef_ndepyear_mean, coef_ndepyear_sd),
+    b_orgcyear = rnorm(1, coef_orgcyear_mean, coef_orgcyear_sd),
+    b_pbryear = rnorm(1, coef_pbryear_mean, coef_pbryear_sd)
+  )
+
+
+
+
 
 # global_drivers <- readRDS(file.path(here::here(), "/data/inputs/global_drivers.rds")) |> 
 #   drop_na()
 
 # global_drivers <- global_drivers[1:2,] # test
 
-data_to_iterate <- global_drivers
-data_all <- data_fil_biomes
-
 # Function to apply csink 30 times for each row using purrr::map_dfr
-apply_csink_global_n_times <- function(global_drivers_row, data_all, n_times) {
+apply_csink_global_n_times <- function(global_drivers_row, data_fil_biomes, n_times) {
   map_dfr(
     1:n_times, 
     ~csink_global(
-      global_drivers_row, data_all,
+      global_drivers_row, 
+      data_fil_biomes,
       coef_ai_mean, coef_ai_sd,
       coef_ndep_mean, coef_ndep_sd,
       coef_orgc_mean, coef_orgc_sd,
@@ -232,7 +253,7 @@ apply_csink_global_n_times <- function(global_drivers_row, data_all, n_times) {
 
 # Using pmap_dfr to apply the function to each row of data_to_iterate (global_drivers) and iterate 30 times
 system.time(
-  results <- data_to_iterate %>%
+  results <- global_drivers %>%
     pmap_dfr(function(...) {
       global_drivers_row <- list(...)
       apply_csink_global_n_times(global_drivers_row, data_all, n_times = 100)

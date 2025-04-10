@@ -22,30 +22,53 @@ library(ggforce)
 library(MuMIn)
 library(ingestr)
 library(DescTools)
+library(here)
 
 # load functions ----
-source(file.path(here::here(), "/analysis/00_functions.R"))
+source(here("R/functions.R"))
 
 # load data
-data_fil_biomes <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biomes.rds"))
-plot_map_fil <-  plot_map(data_biomes_fil)
+data_fil_biomes <- readRDS(here("data/data_fil_biomes.rds"))
+
+plot_map_fil <-  plot_map(data_fil_biomes)
 plot_map_fil
-plot_stl_fil <- plot_stl(data_biomes_fil)
+
+plot_stl_fil <- plot_stl(data_fil_biomes)
 plot_stl_fil
 
-# biome 1 ----
-# Tropical & Subtropical Moist Broadleaf Forests
-data_fil_biome1 <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biome1.rds"))
+# Biome 1: Tropical & Subtropical Moist Broadleaf Forests  ----
 
-Fit_Year = lmer(logDensity ~ scale(logQMD) + scale(year) + (1|dataset/plotID) + (1|species), # + (1|years_since_management_bins), 
-                data = data_fil_biome1, na.action = "na.exclude")
+data_fil_biome1 <- readRDS(here::here("data/data_fil_biome1.rds"))
+
+# # XXX my interpretation because I don't have the file above
+# data_fil_biome1 <- data_fil_biomes |> 
+#   filter(biomeID == 1)
+
+Fit_Year = lmer(
+  logDensity ~ scale(logQMD) + 
+    scale(year) + 
+    (1|dataset/plotID) + 
+    (1|species), # + (1|years_since_management_bins), 
+  data = data_fil_biome1, 
+  na.action = "na.exclude"
+  )
+
 summary(Fit_Year)
 r.squaredGLMM(Fit_Year)
+
 plot(allEffects(Fit_Year))
 plot_model(Fit_Year)
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, terms = c("logQMD","year"))
+plot_model(
+  Fit_Year,
+  type = "pred",
+  show.data=TRUE, 
+  dot.size=1.0, 
+  terms = c("logQMD","year")
+  )
+
 out <- summary(Fit_Year)
 years <- as.integer(summary(data_fil_biome1$year))
+
 caption <- out$coefficients[3,1] |>
   cbind(out$coefficients[3,5]) |>
   as_tibble() |>
@@ -53,13 +76,27 @@ caption <- out$coefficients[3,1] |>
   mutate(estimate = round(estimate,3),
          pvalue = signif(pvalue,digits=3),
          pvalue=ifelse(pvalue<0.001,"<0.001 ***",pvalue))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
-                       terms = c("logQMD", "year[1985,2000,2015]")) + theme_classic() 
 
-pred <- ggpredict(Fit_Year, terms = c("logQMD","year[1985,2000,2015]"), full.data = TRUE) # full.data = TRUE to include random effects. full.data = FALSE ignores group-specific random effects and gives predictions for an "average" group.
+plot_model(
+  Fit_Year,
+  type = "pred",
+  show.data=TRUE, 
+  dot.size=1.0, 
+  colors = c("#21918c","#fde725", "#440154"),
+  terms = c("logQMD", "year[1985,2000,2015]")
+  ) + 
+  theme_classic() 
+
+pred <- ggpredict(
+  Fit_Year, 
+  terms = c("logQMD","year[1985,2000,2015]"), 
+  full.data = TRUE
+  ) # full.data = TRUE to include random effects. full.data = FALSE ignores group-specific random effects and gives predictions for an "average" group.
+
 plot(pred, add.data = F) 
 preddata <- as.data.frame(pred)
 
+# panel for final plot
 fig1_bio1 <- ggplot() + 
   geom_point(data = data_fil_biome1, aes(x = logQMD, y = logDensity), alpha=0.5, size = 1,col="darkgrey", shape = 16, inherit.aes = FALSE) + 
   geom_ribbon(data = preddata, aes(x = x, y = predicted,ymin=conf.low,ymax=conf.high,fill=group),alpha=.2,show.legend=T) + 
@@ -84,14 +121,22 @@ fig1_bio1 <- ggplot() +
                       plot.title.position = "plot") +
   scale_x_continuous(limits = c(2,4.5),breaks = seq(2,4,1)) +
   scale_y_continuous(limits = c(2.9,9.3),breaks = seq(4,8,2))
+
 fig1_bio1
 
-hist_Year <- ggplot(data_fil_biome1, aes(x=year)) + geom_histogram(color="#FFDB6D", fill="#FFDB6D") + theme_bw() + 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        axis.text = element_text(size = 8),axis.title = element_text(size = 8),
-        plot.margin = unit(c(-.5,.1,.1,.1), "cm")) + ggtitle("") +
+hist_Year <- ggplot(data_fil_biome1, aes(x=year)) + 
+  geom_histogram(color="#FFDB6D", fill="#FFDB6D") + 
+  theme_bw() + 
+  theme(
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(size = 8),
+    axis.title = element_text(size = 8),
+    plot.margin = unit(c(-.5,.1,.1,.1), "cm")) + 
+  ggtitle("") +
   scale_x_continuous("Year", breaks = c(1985,2000,2015)) +
   scale_y_continuous("Frequency", breaks = seq(0,300,50))
+
 hist_Year
 
 ## STL shifts ----
@@ -105,24 +150,37 @@ preddata <- preddata %>% group_by(x) %>%
   mutate(increment=predicted/lag(predicted)) %>%
   mutate(percent=upSTL*100/lag(predicted))
 preddata
+
 change_STL <- preddata %>%
   filter(group=="1995") %>%
   ungroup(x) %>%
-  summarise(percent=mean(percent)) %>% pull()
+  summarise(percent=mean(percent)) %>% 
+  pull()
 change_STL
 
 # biome 4 ----
 # Temperate Broadleaf & Mixed Forests Forest
 data_fil_biome4 <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biome4.rds"))
 
-Fit_Year = lmer(logDensity ~ scale(logQMD) + scale(year) + (1|dataset/plotID) + (1|species), # + (1|years_since_management_bins),
-                data = data_fil_biome4, na.action = "na.exclude")
+Fit_Year = lmer(
+  logDensity ~ scale(logQMD) + 
+    scale(year) + 
+    (1|dataset/plotID) + 
+    (1|species), # + (1|years_since_management_bins),
+  data = data_fil_biome4, 
+  na.action = "na.exclude"
+  )
+
 summary(Fit_Year)
 r.squaredGLMM(Fit_Year)
+
 plot(allEffects(Fit_Year))
+
 plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, terms = c("logQMD","year"))
+
 out <- summary(Fit_Year)
 years <- as.integer(summary(data_fil_biome4$year))
+
 caption <- out$coefficients[3,1] |>
   cbind(out$coefficients[3,5]) |>
   as_tibble() |>
@@ -130,11 +188,20 @@ caption <- out$coefficients[3,1] |>
   mutate(estimate = round(estimate,3),
          pvalue = signif(pvalue,digits=3),
          pvalue=ifelse(pvalue<0.001,"<0.001 ***",pvalue))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
-                       terms = c("logQMD", "year[1985,2000,2015]")) + theme_classic() 
+
+plot_model(
+  Fit_Year,
+  type = "pred",
+  show.data=TRUE,
+  dot.size=1.0, 
+  colors = c("#21918c","#fde725", "#440154"),
+  terms = c("logQMD", "year[1985,2000,2015]")
+  ) + 
+  theme_classic() 
 
 pred <- ggpredict(Fit_Year, terms = c("logQMD","year[1985,2000,2015]]"), full.data = TRUE)
 plot(pred, add.data = F) 
+
 preddata <- as.data.frame(pred)
 
 fig1_bio4 <- ggplot() + 

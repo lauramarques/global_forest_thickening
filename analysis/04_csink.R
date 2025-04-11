@@ -16,61 +16,60 @@ library(ggokabeito)
 library(okabeito_colors)
 
 # load functions ----
-source(file.path(here::here(), "/analysis/00_functions.R"))
+source(here::here("R/csink.R"))
 
 # load data by biome ----
 
 # biome 1
 # Tropical & Subtropical Moist Broadleaf Forests
-data_fil_biome1 <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biome1.rds"))
+data_fil_biome1 <- readRDS(here::here("data/data_fil_biome1.rds"))
 
 data_biomass_biome1 <- data_fil_biome1 |>
-  filter(biomass != "NA") |> 
   mutate(NQMD2 = density * QMD^2) # new variable for the csink model
 
 data_biomass_biome1 |>
   distinct(dataset)
 
 data_biomass_biome1 |>
-  ggplot(aes(y = biomass, x = density*QMD^2, col=dataset)) + geom_point() + 
+  ggplot(aes(y = biomass, x = density*QMD^2, col=dataset)) + 
+  geom_point() + 
   coord_obs_pred()
 
 # biome 4
 # Temperate Broadleaf & Mixed Forests  
-data_fil_biome4 <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biome4.rds"))
+data_fil_biome4 <- readRDS(here::here("data/data_fil_biome4.rds"))
 
 data_biomass_biome4 <- data_fil_biome4 |>
-  filter(biomass != "NA") |> 
   mutate(NQMD2 = density * QMD^2) # new variable for the csink model
 
 data_biomass_biome4 |>
   distinct(dataset) 
 
 data_biomass_biome4 |>
-  ggplot(aes(y = biomass, x = density*QMD^2, col=dataset)) + geom_point() + 
+  ggplot(aes(y = biomass, x = density*QMD^2, col=dataset)) + 
+  geom_point() + 
   coord_obs_pred()
   
 # biome 5
 # Temperate Conifer Forests  
-data_fil_biome5 <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biome5.rds"))
+data_fil_biome5 <- readRDS(here::here("data/data_fil_biome5.rds"))
 
 data_biomass_biome5 <- data_fil_biome5 |>
-  filter(biomass != "NA") |> 
   mutate(NQMD2 = density * QMD^2) # new variable for the csink model
 
 data_biomass_biome5 |>
   distinct(dataset) 
 
 data_biomass_biome5 |>
-  ggplot(aes(y = biomass, x = density*QMD^2, col=dataset)) + geom_point() + 
+  ggplot(aes(y = biomass, x = density*QMD^2, col=dataset)) + 
+  geom_point() + 
   coord_obs_pred()
 
 # biome 6
 # Boreal Forests/Taiga
-data_fil_biome6 <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biome6.rds"))
+data_fil_biome6 <- readRDS(here::here("data/data_fil_biome6.rds"))
 
 data_biomass_biome6 <- data_fil_biome6 |>
-  filter(biomass != "NA") |> 
   mutate(NQMD2 = density * QMD^2) # new variable for the csink model
 
 data_biomass_biome6 |>
@@ -82,10 +81,9 @@ data_biomass_biome6 |>
 
 # biome 12
 # Mediterranean Forests, Woodlands & Scrub
-data_fil_biome12 <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biome12.rds"))
+data_fil_biome12 <- readRDS(here::here("data/data_fil_biome12.rds"))
 
 data_biomass_biome12 <- data_fil_biome12 |>
-  filter(biomass != "NA") |> 
   mutate(NQMD2 = density * QMD^2) # new variable for the csink model
 
 data_biomass_biome12 |>
@@ -103,46 +101,63 @@ data_biomass_biome12 |>
 # 4. Repeat steps 1-3 multiple times. This gives the distribution of mature forest biomass change per unit area. 
 # the function csink includes the steps 1-3. We run it 1e5 calling the fc using purrr::map_dfr
 
-# biome 1
+## Biome 1 ---------
 # Tropical & Subtropical Moist Broadleaf Forests
 data_all <- data_fil_biome1
 data_biomass <- data_biomass_biome1 
 
-fit1 = lmer(log(density) ~ logQMD + year + (1|dataset/plotID) + (1|species), data = data_all, na.action = "na.exclude")
+fit1 = lmer(
+  log(density) ~ logQMD + year + (1|dataset/plotID) + (1|species), 
+  data = data_all, 
+  na.action = "na.exclude"
+)
 
-fit2 = lmer(biomass ~ NQMD2 + 0 + (1|dataset/plotID), data = data_biomass, na.action = "na.exclude")
+fit2 = lmer(
+  biomass ~ NQMD2 + 0 + (1|dataset/plotID), 
+  data = data_biomass, 
+  na.action = "na.exclude"
+)
+
 a_mean <- summary(fit2)$coefficient[1,1]
 a_sd <- summary(fit2)$coefficient[1,2]
 
-filn <- file.path(here::here(), "/data/inputs/out_csink_biome1.rds")
+filn <- here::here("data/out_csink_biome1.rds")
 if (!file.exists(filn)){
-out <- purrr::map_dfr(
-  as.list(seq(1e5)), #1e5
-  ~csink(data_all,a_mean,a_sd))
-out
-saveRDS(out, file = file.path(here::here(), "/data/inputs/out_csink_biome1.rds"))
+  out <- purrr::map_dfr(
+    as.list(seq(1e5)), #1e5
+    ~csink(data_all, a_mean, a_sd))
+  saveRDS(out, file = filn)
 }
 
-# biome 4
+## Biome 4 ---------
 # Temperate Broadleaf & Mixed Forests 
 data_all <- data_fil_biome4
 data_biomass <- data_biomass_biome4
 
-fit1 = lmer(log(density) ~ logQMD + year + (1|dataset/plotID) + (1|species), data = data_all, na.action = "na.exclude")
+fit1 = lmer(
+  log(density) ~ logQMD + year + (1|dataset/plotID) + (1|species), 
+  data = data_all, 
+  na.action = "na.exclude"
+)
 
-fit2 = lmer(biomass ~ NQMD2 + 0 + (1|dataset/plotID), data = data_biomass, na.action = "na.exclude")
+fit2 = lmer(
+  biomass ~ NQMD2 + 0 + (1|dataset/plotID), 
+  data = data_biomass, 
+  na.action = "na.exclude"
+)
+
 a_mean <- summary(fit2)$coefficient[1,1]
 a_sd <- summary(fit2)$coefficient[1,2]
 
-filn <- file.path(here::here(), "/data/inputs/out_csink_biome4.rds")
+filn <- here::here("data/out_csink_biome4.rds")
 if (!file.exists(filn)){
-out <- purrr::map_dfr(
-  as.list(seq(1e5)), #1e5
-  ~csink(data_all,a_mean,a_sd))
-saveRDS(out, file = file.path(here::here(), "/data/inputs/out_csink_biome4.rds"))
+  out <- purrr::map_dfr(
+    as.list(seq(1e5)), #1e5
+    ~csink(data_all, fit1, a_mean, a_sd))
+  saveRDS(out, file = filn)
 }
 
-# biome 5
+## Biome 5 ---------
 # Temperate Conifer Forests  
 data_all <- data_fil_biome5
 data_biomass <- data_biomass_biome5
@@ -153,15 +168,15 @@ fit2 = lmer(biomass ~ NQMD2 + 0 + (1|dataset/plotID), data = data_biomass, na.ac
 a_mean <- summary(fit2)$coefficient[1,1]
 a_sd <- summary(fit2)$coefficient[1,2]
 
-filn <- file.path(here::here(), "/data/inputs/out_csink_biome5.rds")
+filn <- here::here("data/out_csink_biome5.rds")
 if (!file.exists(filn)){
-out <- purrr::map_dfr(
-  as.list(seq(1e5)), #1e5
-  ~csink(data_all,a_mean,a_sd))
-saveRDS(out, file = file.path(here::here(), "/data/inputs/out_csink_biome5.rds"))
+  out <- purrr::map_dfr(
+    as.list(seq(1e5)), #1e5
+    ~csink(data_all, fit1, a_mean, a_sd))
+  saveRDS(out, file = filn)
 }
 
-# biome 6
+## Biome 6 ---------
 # Boreal Forests/Taiga
 data_all <- data_fil_biome6
 data_biomass <- data_biomass_biome6
@@ -172,15 +187,15 @@ fit2 = lmer(biomass ~ NQMD2 + 0 + (1|plotID), data = data_biomass, na.action = "
 a_mean <- summary(fit2)$coefficient[1,1]
 a_sd <- summary(fit2)$coefficient[1,2]
 
-filn <- file.path(here::here(), "/data/inputs/out_csink_biome6.rds")
+filn <- here::here("data/out_csink_biome6.rds")
 if (!file.exists(filn)){
-out <- purrr::map_dfr(
-  as.list(seq(1e5)), #1e5
-  ~csink(data_all,a_mean,a_sd))
-saveRDS(out, file = file.path(here::here(), "/data/inputs/out_csink_biome6.rds"))
+  out <- purrr::map_dfr(
+    as.list(seq(1e5)), #1e5
+    ~csink(data_all, fit1, a_mean, a_sd))
+  saveRDS(out, file = filn)
 }
 
-# biome 12
+## Biome 12 ---------
 # Mediterranean Forests, Woodlands & Scrub
 data_all <- data_fil_biome12
 data_biomass <- data_biomass_biome12
@@ -191,31 +206,34 @@ fit2 = lmer(biomass ~ NQMD2 + 0 + (1|plotID), data = data_biomass, na.action = "
 a_mean <- summary(fit2)$coefficient[1,1]
 a_sd <- summary(fit2)$coefficient[1,2]
 
-filn <- file.path(here::here(), "/data/inputs/out_csink_biome12.rds")
+filn <- here::here("data/out_csink_biome12.rds")
 if (!file.exists(filn)){
-out <- purrr::map_dfr(
-  as.list(seq(1e5)), #1e5
-  ~csink(data_all,a_mean,a_sd))
-saveRDS(out, file = file.path(here::here(), "/data/inputs/out_csink_biome12.rds"))
+  out <- purrr::map_dfr(
+    as.list(seq(1e5)), #1e5
+    ~csink(data_all, fit1, a_mean, a_sd))
+  saveRDS(out, file = filn)
 } 
 
 # dB per ha ----
 # Biomass change
 
 # Biome 1: Tropical & Subtropical Moist Broadleaf Forests
-out_csink_biome1 <- readRDS(file.path(here::here(), "/data/inputs/out_csink_biome1.rds"))
+filn <- here::here("data/out_csink_biome1.rds")
+
 out_csink_biome1 <- out_csink_biome1 |>
   mutate(biome = "Biome 1")
+
 dB_Mg_ha_b1 <- out_csink_biome1 |> 
   ggplot(aes(dB_Mg_ha, ..density..)) +
   geom_density() +
   theme_classic() +
   labs(title = "Biomass change",
        subtitle = "Tropical & Subtropical Moist Broadleaf Forests")
+
 dB_Mg_ha_b1
 
 # Biome 4: Temperate Broadleaf & Mixed Forests 
-out_csink_biome4 <- readRDS(file.path(here::here(), "/data/inputs/out_csink_biome4.rds"))
+out_csink_biome4 <- readRDS(here::here("data/out_csink_biome4.rds"))
 out_csink_biome4 <- out_csink_biome4 |>
   mutate(biome = "Biome 4")
 dB_Mg_ha_b4 <- out_csink_biome4 |> 
@@ -227,7 +245,7 @@ dB_Mg_ha_b4 <- out_csink_biome4 |>
 dB_Mg_ha_b4
 
 # Biome 5: Temperate Conifer Forests  
-out_csink_biome5 <- readRDS(file.path(here::here(), "/data/inputs/out_csink_biome5.rds"))
+out_csink_biome5 <- readRDS(here::here("data/out_csink_biome5.rds"))
 out_csink_biome5 <- out_csink_biome5 |>
   mutate(biome = "Biome 5")
 dB_Mg_ha_b5 <- out_csink_biome5 |> 
@@ -239,7 +257,7 @@ dB_Mg_ha_b5 <- out_csink_biome5 |>
 dB_Mg_ha_b5
 
 # Biome 6: Boreal Forests/Taiga
-out_csink_biome6 <- readRDS(file.path(here::here(), "/data/inputs/out_csink_biome6.rds"))
+out_csink_biome6 <- readRDS(here::here("data/out_csink_biome6.rds"))
 out_csink_biome6 <- out_csink_biome6 |>
   mutate(biome = "Biome 6")
 dB_Mg_ha_b6 <- out_csink_biome6 |> 
@@ -251,7 +269,7 @@ dB_Mg_ha_b6 <- out_csink_biome6 |>
 dB_Mg_ha_b6
 
 # Biome 12: Mediterranean forests
-out_csink_biome12 <- readRDS(file.path(here::here(), "/data/inputs/out_csink_biome12.rds"))
+out_csink_biome12 <- readRDS(here::here("data/out_csink_biome12.rds"))
 out_csink_biome12 <- out_csink_biome12 |>
   mutate(biome = "Biome 12")
 dB_Mg_ha_b12 <- out_csink_biome12 |> 
@@ -268,14 +286,14 @@ dB_Mg_ha_b12
 # Get forest fraction cover for each biome
 
 # load biomes vector
-# From the WWF Ecoregions data
-v_biomes <- terra::vect(file.path(here::here(), "/data/wwf/wwf_terr_ecos.shp"))
+# From the WWF Ecoregions data 
+v_biomes <- terra::vect(file.path(here::here(), "/data/wwf/wwf_terr_ecos.shp")) # XXX path on GECO WS
 values(v_biomes)
 # Check the CRS
 crs_info <- crs(v_biomes)
 
 # load modis fraction forest cover raster
-r_fcf <- terra::rast("/home/laura/data/forest_fraction/MODIS_ForestCoverFraction.nc")
+r_fcf <- terra::rast("/home/laura/data/forest_fraction/MODIS_ForestCoverFraction.nc") # XXX path on GECO WS
 names(r_fcf)
 # select only the forestcoverfraction
 r_fcf <- r_fcf[[1]]
@@ -311,7 +329,7 @@ biomes_fcf <- as.data.frame(v_biomes) |>
 # # Biome 1: Tropical & Subtropical Moist Broadleaf Forests
 biomes_fcf_b1 <- biomes_fcf |> filter(BIOME==1)
 
-out_csink_biome1 <- readRDS(file.path(here::here(), "/data/inputs/out_csink_biome1.rds"))
+out_csink_biome1 <- readRDS(here::here("data/out_csink_biome1.rds"))
 out_csink_biome1 <- out_csink_biome1 |>
   mutate(dB_Mg_total = dB_Mg_ha * (biomes_fcf |> filter(BIOME==1))$total_forestcover_area_ha,
          dB_Pg_yr = dB_Mg_total*1e-9) |>
@@ -328,7 +346,7 @@ dB_Pg_yr_b1
 # Biome 4: Temperate Broadleaf & Mixed Forests 
 biomes_fcf_b4 <- biomes_fcf |> filter(BIOME==4)
 
-out_csink_biome4 <- readRDS(file.path(here::here(), "/data/inputs/out_csink_biome4.rds"))
+out_csink_biome4 <- readRDS(here::here("data/out_csink_biome4.rds"))
 out_csink_biome4 <- out_csink_biome4 |>
   mutate(dB_Mg_total = dB_Mg_ha * (biomes_fcf |> filter(BIOME==4))$total_forestcover_area_ha,
          dB_Pg_yr = dB_Mg_total*1e-9) |>
@@ -344,7 +362,7 @@ dB_Pg_yr_b4
 # Biome 5: Temperate Conifer Forests  
 biomes_fcf_b5 <- biomes_fcf |> filter(BIOME==5)
 
-out_csink_biome5 <- readRDS(file.path(here::here(), "/data/inputs/out_csink_biome5.rds"))
+out_csink_biome5 <- readRDS(here::here("data/out_csink_biome5.rds"))
 out_csink_biome5 <- out_csink_biome5 |>
   mutate(dB_Mg_total = dB_Mg_ha * (biomes_fcf |> filter(BIOME==5))$total_forestcover_area_ha,
          dB_Pg_yr = dB_Mg_total*1e-9) |>
@@ -360,7 +378,7 @@ dB_Pg_yr_b5
 # Biome 6: Boreal Forests/Taiga
 biomes_fcf_b6 <- biomes_fcf |> filter(BIOME==6)
 
-out_csink_biome6 <- readRDS(file.path(here::here(), "/data/inputs/out_csink_biome6.rds"))
+out_csink_biome6 <- readRDS(here::here("data/out_csink_biome6.rds"))
 out_csink_biome6 <- out_csink_biome6 |>
   mutate(dB_Mg_total = dB_Mg_ha * (biomes_fcf |> filter(BIOME==6))$total_forestcover_area_ha,
          dB_Pg_yr = dB_Mg_total*1e-9) |>
@@ -376,7 +394,7 @@ dB_Pg_yr_b6
 # Biome 12: Mediterranean forests
 biomes_fcf_b12 <- biomes_fcf |> filter(BIOME==12)
 
-out_csink_biome12 <- readRDS(file.path(here::here(), "/data/inputs/out_csink_biome12.rds"))
+out_csink_biome12 <- readRDS(here::here("data/out_csink_biome12.rds"))
 out_csink_biome12 <- out_csink_biome12 |>
   mutate(dB_Mg_total = dB_Mg_ha * (biomes_fcf |> filter(BIOME==12))$total_forestcover_area_ha,
          dB_Pg_yr = dB_Mg_total*1e-9) |>

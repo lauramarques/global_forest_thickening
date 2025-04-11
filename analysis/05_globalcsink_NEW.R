@@ -184,6 +184,45 @@ fit_biomass = lmer(
   data = data_forest_plots_biomass
 )
 
+### Alternative fit with biome as a grouping variable -----------
+fit_biomass2 = lmer(
+  biomass ~ NQMD2 + 0 + (1|biomeID) + (1|dataset/plotID), 
+  data = data_forest_plots_biomass
+)
+
+### Inspect distribution  ---------------
+# overall
+data_forest_plots_biomass |> 
+  ggplot(aes(QMD, color = biome, fill = biome)) +
+  geom_density(alpha = 0.5) +
+  khroma::scale_fill_okabeito() +
+  khroma::scale_color_okabeito() +
+  theme_classic() +
+  theme(
+    legend.position = "bottom"
+  )
+
+### Inspect relationship biomass N*QMD2 ---------------
+# overall
+data_forest_plots_biomass |> 
+  ggplot(aes(NQMD2, biomass)) +
+  geom_hex(bins = 50, show.legend = FALSE) +
+  geom_smooth(method = "lm", ) +
+  khroma::scale_fill_batlowW(trans = "log", reverse = TRUE) +
+  theme_classic() +
+  geom_abline(intercept = 0, slope = coef(fit_biomass)$dataset$NQMD2[1], linetype = "dotted") +
+  coord_fixed()
+
+# by biome
+data_forest_plots_biomass |> 
+  ggplot(aes(NQMD2, biomass)) +
+  geom_hex(bins = 50, show.legend = FALSE) +
+  khroma::scale_fill_batlowW(trans = "log", reverse = TRUE) +
+  theme_classic() +
+  geom_abline(intercept = 0, slope = coef(fit_biomass)$dataset$NQMD2[1], linetype = "dotted") +
+  coord_fixed() +
+  facet_wrap(~biome, ncol = 2)
+
 ## Construct sampling ----------------
 ### Sample coefficients -----------------
 fixef_means_selfthinning <- fixef(fit_selfthinning)
@@ -204,6 +243,11 @@ coef_samples_biomass <- MASS::mvrnorm(
   mu = fixef_means_biomass, 
   Sigma = vcov_matrix_biomass
 )
+
+# The samples are too narrowly distributed!
+coef_samples_biomass |> 
+  ggplot(aes(NQMD2)) + 
+  geom_density()
 
 # Combine to single data frame assuming the two are independent
 coef_samples <- coef_samples_selfthinning |> 

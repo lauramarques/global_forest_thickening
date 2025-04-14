@@ -375,6 +375,23 @@ data_fil_biomes |>
 
 mean(data_fil_biomes$years_since_management, na.rm=T)
 
+# Check DBH distributions
+ggplot() +
+  geom_density(data = data_fil_biomes, aes(QMD, ..density.., col=factor(biome), fill=factor(biome)), alpha= 0.7) +
+  theme_classic() +
+  scale_fill_manual(name = "Biome", values = c("Tropical & Subtropical Moist Broadleaf Forests" = "#E69F00", 
+                                               "Temperate Broadleaf & Mixed Forests" = "#56B4E9",
+                                               "Temperate Conifer Forests" = "#009E73", 
+                                               "Boreal Forests/Taiga" = "#F5C710", 
+                                               "Mediterranean Forests, Woodlands & Scrub" = "#0072B2")) +
+  scale_color_manual(name = "Biome", values = c("Tropical & Subtropical Moist Broadleaf Forests" = "#E69F00", 
+                                                "Temperate Broadleaf & Mixed Forests" = "#56B4E9",
+                                                "Temperate Conifer Forests" = "#009E73", 
+                                                "Boreal Forests/Taiga" = "#F5C710", 
+                                                "Mediterranean Forests, Woodlands & Scrub" = "#0072B2")) +
+  theme(legend.position = "bottom") +
+  scale_x_continuous(limits = c(0,80))   
+
 # Table S1 ----
 data <- readRDS(file.path(here::here(), "/data/inputs/data_unm.rds"))
 data <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biomes.rds"))

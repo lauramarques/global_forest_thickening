@@ -52,7 +52,7 @@ newdata_biomass <- data.frame(
   plotID = rep("dummy", 2)
   ) |> 
   mutate(NQMD2 = density * QMD^2) %>%   # new variable for modelling biomass 
-  mutate(biomass_pred_mean = predict(fit_biomass, newdata = ., re.form = NA))
+  mutate(biomass_pred_mean = predict(fit_biomass, newdata = ., re.form = NA))  # (marginal) predictions based only on fixed effects.
 
 # new version: considering residual error (prediction error) in biomass estimate, given N*QMD^2, 
 # and assuming uncorrelated errors in the two biomass estimates, not considering random effect uncertainty 
@@ -65,12 +65,3 @@ dB_with_unc <- dB + rnorm(1, mean = 0, sd = sqrt(2) * sigma(fit_biomass))
 # ak <- rnorm(1, a_mean, a_sd)
 # dB_with_unc <- ak * newdata_biomass$QMD^2 * (newdata_biomass$density[2] - newdata_biomass$density[1])
 
-
-
-filn <- here::here("data/out_csink_biome1.rds")
-if (!file.exists(filn)){
-  out <- purrr::map_dfr(
-    as.list(seq(1e5)), #1e5
-    ~csink(data_fil_biome1, a_mean, a_sd))
-  saveRDS(out, file = filn)
-}

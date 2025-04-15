@@ -164,6 +164,16 @@ data_forest_plots_selfthinning <- data_forest_plots |>
 data_forest_plots_biomass <- data_forest_plots |> 
   drop_na(all_of(c("biomass", "NQMD2", "dataset", "plotID")))
 
+# scale (normalise) newdata with the parameters from the data used for model fitting
+# repeat the single row for matiching dimensions of tmp_t0 and tmp_t1
+data_forest_plots_selfthinning_means <- data_forest_plots_selfthinning |> 
+  summarise(across(all_of(c("logQMD", "year", "ai", "ndep", "ORGC", "PBR")), mean))
+# slice(rep(1:n(), times = nrow(tmp_t0)))
+
+data_forest_plots_selfthinning_sds <- data_forest_plots_selfthinning |> 
+  summarise(across(all_of(c("logQMD", "year", "ai", "ndep", "ORGC", "PBR")), sd))
+# slice(rep(1:n(), times = nrow(tmp_t0)))
+
 # global fields of predictors for upscaling
 global_drivers <- readRDS(here::here("data/global_drivers.rds"))
 
@@ -184,11 +194,19 @@ fit_biomass = lmer(
   data = data_forest_plots_biomass
 )
 
-### Alternative fit with biome as a grouping variable -----------
-fit_biomass2 = lmer(
-  biomass ~ NQMD2 + 0 + (1|biomeID) + (1|dataset/plotID), 
-  data = data_forest_plots_biomass
-)
+# not a lot of data for all biomes!
+data_forest_plots_biomass |> 
+  dplyr::group_by(biomeID, biome, dataset) |> 
+  drop_na(biomass) |> 
+  summarise(n = n())
+
+# ### Alternative fit with biome as a grouping variable -----------
+# shouldn't this be biome-specific? Problem: then we cannot predict 
+# for gridcells that belong to biome for which we had no data for model fitting.
+# fit_biomass2 = lmer(
+#   biomass ~ NQMD2 + 0 + (1|biomeID) + (1|dataset/plotID), 
+#   data = data_forest_plots_biomass
+# )
 
 ### Inspect distribution  ---------------
 # overall
@@ -222,6 +240,15 @@ data_forest_plots_biomass |>
   geom_abline(intercept = 0, slope = coef(fit_biomass)$dataset$NQMD2[1], linetype = "dotted") +
   coord_fixed() +
   facet_wrap(~biome, ncol = 2)
+
+# by just moist broadleaved tropical
+# XXX correct? 
+data_forest_plots_biomass |> 
+  filter(biomeID == 1) |> 
+  ggplot(aes(NQMD2, biomass, color = dataset)) +
+  geom_point() +
+  theme_classic() +
+  coord_fixed()
 
 ## Construct sampling ----------------
 ### Sample coefficients -----------------
@@ -264,6 +291,7 @@ generate_samples_by_gridcell <- function(idx, global_drivers, data_forest_plots,
     mutate(logQMD = sample(data_forest_plots$logQMD, size = n_qmd))
 }
 
+# slow!
 df_samples_qmd <- purrr::map_dfr(
   as.list(1:nrow(global_drivers)),  # doing it only for three gridcells
   ~generate_samples_by_gridcell(., global_drivers, data_forest_plots, n_qmd) 
@@ -287,43 +315,35 @@ df_samples <- purrr::map_dfr(
   ~add_coefs(., df_samples_qmd, coef_samples)
 )
 
-# scale (normalise) newdata with the parameters from the data used for model fitting
-# repeat the single row for matiching dimensions of tmp_t0 and tmp_t1
-data_forest_plots_selfthinning_means <- data_forest_plots_selfthinning |> 
-  summarise(across(all_of(c("logQMD", "year", "ai", "ndep", "ORGC", "PBR")), mean))
-# slice(rep(1:n(), times = nrow(tmp_t0)))
-
-data_forest_plots_selfthinning_sds <- data_forest_plots_selfthinning |> 
-  summarise(across(all_of(c("logQMD", "year", "ai", "ndep", "ORGC", "PBR")), sd))
-# slice(rep(1:n(), times = nrow(tmp_t0)))
 
 # Calculate biomass difference for each sample -------------
 
 ## Unparallel version ------------
-# tic()
-# df_db <- pmap(df_samples, function(...) {
-#   row_df <- tibble(...)  # reconstruct one-row data frame
-#   calc_db(
-#     row_df,
-#     data_forest_plots_selfthinning_means,
-#     data_forest_plots_selfthinning_sds,
-#     coef_samples_selfthinning,
-#     coef_samples_biomass
-#     )
-# }) |> 
-#   unlist() |> 
-#   as_tibble() |> 
-#   setNames("dB") |> 
-#   mutate(dB_Mg_ha = dB * 10^-3) |> 
-#   bind_cols(
-#     df_samples |> 
-#       dplyr::select(plotID, lon, lat, area_ha)
-#   ) |> 
-#   arrange(plotID)
-# toc()
+tic()
+df_db <- pmap(slice(df_samples, 1:30), function(...) {
+  row_df <- tibble(...)  # reconstruct one-row data frame
+  calc_db(
+    row_df,
+    data_forest_plots_selfthinning_means,
+    data_forest_plots_selfthinning_sds,
+    coef_samples_selfthinning,
+    coef_samples_biomass
+    )
+}) |>
+  unlist() |>
+  as_tibble() |>
+  setNames("dB") |>
+  mutate(dB_Mg_ha = dB * 10^-3) |>
+  bind_cols(
+    df_samples |>
+      slice(1:30) |> 
+      dplyr::select(plotID, lon, lat, area_ha)
+  ) |>
+  arrange(plotID)
+toc()
 
 ## Parallelised version -------------
-ncores <- 4
+ncores <- parallel::detectCores() - 2
 
 cl <- new_cluster(n = ncores) |> 
   cluster_library(packages = c("dplyr")) |> 
@@ -337,7 +357,7 @@ cl <- new_cluster(n = ncores) |>
 
 tic()
 df_db_parallel <- df_samples |>
-  dplyr::group_by(id = row_number()) |>
+  mutate(id = row_number()) |>
   partition(cl) |> 
   mutate(result = purrr::pmap_dbl(
     across(), 
@@ -347,8 +367,8 @@ df_db_parallel <- df_samples |>
       data_forest_plots_selfthinning_sds,
       coef_samples_selfthinning,
       coef_samples_biomass
-      )
-    )) |> 
+    )
+  )) |> 
   collect() |> 
   dplyr::select(plotID, lon, lat, area_ha, dB = result) |> 
   mutate(dB_Mg_ha = dB * 10^-3) |> 

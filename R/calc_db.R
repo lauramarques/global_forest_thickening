@@ -18,6 +18,7 @@ calc_db <- function(
     dplyr::mutate(year = 2001) |> 
     dplyr::select(logQMD, year, ai, ndep, ORGC, PBR)
   
+  # normalise
   tmp_t0_norm <- (tmp_t0 - data_forest_plots_selfthinning_means)/data_forest_plots_selfthinning_sds
   tmp_t1_norm <- (tmp_t1 - data_forest_plots_selfthinning_means)/data_forest_plots_selfthinning_sds
   

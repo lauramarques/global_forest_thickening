@@ -234,15 +234,16 @@ df_sub |>
   coord_obs_pred()
 
 fit_selfthinning = lmer(
-  log(density) ~ logQMD + year + (1|plotID) + (1|species), 
+  log(density) ~ logQMD + year + (1|dataset/plotID) + (1|species), 
   data = df_sub, 
   na.action = "na.exclude"
 )
 
 fit_biomass = lmer(
-  biomass ~ NQMD2 + 0 + (1|plotID), 
+  biomass ~ NQMD2 + 0 + (1|dataset/plotID), 
   data = df_sub, 
-  na.action = "na.exclude"
+  na.action = "na.exclude",
+  control = lmerControl(optimizer = "bobyqa")
 )
 a_mean <- summary(fit_biomass)$coefficient[1,1]
 a_sd <- summary(fit_biomass)$coefficient[1,2]
@@ -323,23 +324,28 @@ biomes_fcf <- as.data.frame(v_biomes) |>
 # to get the distribution of the biome-level total mature forest C sink.
 # Mg = 1e-9 Petagrams. 1PG of C = 1e15 grams
 
-out_csink_biome1 <- readRDS(here::here("data/out_csink_biome1_ORI.rds")) |>
+out_csink_biome1 <- #readRDS(here::here("data/out_csink_biome1_ORI.rds")) |>
+  readRDS(here::here("data/out_csink_biome1_NEW.rds")) |>
   mutate(biome = "Tropical Moist Broadleaf Forests") |>
   mutate(dB_Mg_yr = dB_Mg_ha * (biomes_fcf |> filter(BIOME==1))$total_forestcover_area_ha) 
 
-out_csink_biome4 <- readRDS(here::here("data/out_csink_biome4_ORI.rds")) |>
+out_csink_biome4 <- #readRDS(here::here("data/out_csink_biome4_ORI.rds")) |>
+  readRDS(here::here("data/out_csink_biome4_NEW.rds")) |>
   mutate(biome = "Temperate Broadleaf & Mixed Forests") |>
   mutate(dB_Mg_yr = dB_Mg_ha * (biomes_fcf |> filter(BIOME==4))$total_forestcover_area_ha) 
 
-out_csink_biome5 <- readRDS(here::here("data/out_csink_biome5_ORI.rds")) |>
+out_csink_biome5 <- #readRDS(here::here("data/out_csink_biome5_ORI.rds")) |>
+  readRDS(here::here("data/out_csink_biome5_NEW.rds")) |>
   mutate(biome = "Temperate Conifer Forests") |>
   mutate(dB_Mg_yr = dB_Mg_ha * (biomes_fcf |> filter(BIOME==5))$total_forestcover_area_ha) 
 
-out_csink_biome6 <- readRDS(here::here("data/out_csink_biome6_ORI.rds")) |>
+out_csink_biome6 <- #readRDS(here::here("data/out_csink_biome6_ORI.rds")) |>
+  readRDS(here::here("data/out_csink_biome6_NEW.rds")) |>
   mutate(biome = "Boreal Forests/Taiga") |>
   mutate(dB_Mg_yr = dB_Mg_ha * (biomes_fcf |> filter(BIOME==6))$total_forestcover_area_ha) 
 
-out_csink_biome12 <- readRDS(here::here("data/out_csink_biome12_ORI.rds")) |>
+out_csink_biome12 <- #readRDS(here::here("data/out_csink_biome12_ORI.rds")) |>
+  readRDS(here::here("data/out_csink_biome12_NEW.rds")) |>
   mutate(biome = "Mediterranean forests") |>
   mutate(dB_Mg_yr = dB_Mg_ha * (biomes_fcf |> filter(BIOME==12))$total_forestcover_area_ha) 
 

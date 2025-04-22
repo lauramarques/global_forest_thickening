@@ -14,10 +14,10 @@ library(tidymodels)
 library(terra)
 library(ncdf4)
 library(patchwork)
-library(ggokabeito)
+#library(ggokabeito)
 library(ingestr)
 library(multidplyr)
-library(tictoc)
+#library(tictoc)
 library(readr)
 
 # Prepare data for global C sink estimate ---------

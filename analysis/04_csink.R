@@ -12,8 +12,7 @@ library(tidymodels)
 library(terra)
 library(ncdf4)
 library(patchwork)
-library(ggokabeito)
-library(okabeito_colors)
+#library(ggokabeito)
 
 # load functions ----
 source(here::here("R/csink.R"))

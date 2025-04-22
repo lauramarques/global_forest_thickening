@@ -21,7 +21,7 @@ library(lqmm)
 library(ggforce)
 library(MuMIn)
 library(ingestr)
-library(DescTools)
+#library(DescTools)
 
 # load functions ----
 source(file.path(here::here(), "/analysis/00_functions.R"))

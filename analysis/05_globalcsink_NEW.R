@@ -18,6 +18,7 @@ library(patchwork)
 library(ingestr)
 library(multidplyr)
 #library(tictoc)
+library(readr)
 
 # Prepare data for global C sink estimate ---------
 # This script evaluates the mature forests C sink
@@ -26,6 +27,7 @@ library(multidplyr)
 source(here::here("R/functions.R"))
 source(here::here("R/get_drivers_by_biome.R"))
 source(here("R/csink_global.R"))
+source(here("R/calc_db.R"))
 
 # Collect global environmental covariates --------------
 filn <- here::here("data/global_drivers.rds")
@@ -318,62 +320,71 @@ df_samples <- purrr::map_dfr(
 
 # Calculate biomass difference for each sample -------------
 
-## Unparallel version ------------
-tic()
-df_db <- pmap(slice(df_samples, 1:30), function(...) {
-  row_df <- tibble(...)  # reconstruct one-row data frame
-  calc_db(
-    row_df,
-    data_forest_plots_selfthinning_means,
-    data_forest_plots_selfthinning_sds,
-    coef_samples_selfthinning,
-    coef_samples_biomass
+filnam <- here::here(paste0("data/df_db_n_coef_", n_coef, "_n_qmd_", n_qmd, ".rds"))
+
+if (!file.exists(filnam)){
+  # ## Unparallel version ------------
+  # tic()
+  # df_db <- pmap(slice(df_samples, 1:30), function(...) {
+  #   row_df <- tibble(...)  # reconstruct one-row data frame
+  #   calc_db(
+  #     row_df,
+  #     data_forest_plots_selfthinning_means,
+  #     data_forest_plots_selfthinning_sds,
+  #     coef_samples_selfthinning,
+  #     coef_samples_biomass
+  #     )
+  # }) |>
+  #   unlist() |>
+  #   as_tibble() |>
+  #   setNames("dB") |>
+  #   mutate(dB_Mg_ha = dB * 10^-3) |>
+  #   bind_cols(
+  #     df_samples |>
+  #       slice(1:30) |>
+  #       dplyr::select(plotID, lon, lat, area_ha)
+  #   ) |>
+  #   arrange(plotID)
+  # toc()
+  
+  ## Parallelised version -------------
+  ncores <- 25 # parallel::detectCores() - 2
+  
+  cl <- new_cluster(n = ncores) |> 
+    cluster_library(packages = c("dplyr")) |> 
+    cluster_assign(
+      calc_db = calc_db,
+      data_forest_plots_selfthinning_means = data_forest_plots_selfthinning_means,
+      data_forest_plots_selfthinning_sds = data_forest_plots_selfthinning_sds,
+      coef_samples_selfthinning = coef_samples_selfthinning,
+      coef_samples_biomass = coef_samples_biomass
     )
-}) |>
-  unlist() |>
-  as_tibble() |>
-  setNames("dB") |>
-  mutate(dB_Mg_ha = dB * 10^-3) |>
-  bind_cols(
-    df_samples |>
-      slice(1:30) |> 
-      dplyr::select(plotID, lon, lat, area_ha)
-  ) |>
-  arrange(plotID)
-toc()
-
-## Parallelised version -------------
-ncores <- parallel::detectCores() - 2
-
-cl <- new_cluster(n = ncores) |> 
-  cluster_library(packages = c("dplyr")) |> 
-  cluster_assign(
-    calc_db = calc_db,
-    data_forest_plots_selfthinning_means = data_forest_plots_selfthinning_means,
-    data_forest_plots_selfthinning_sds = data_forest_plots_selfthinning_sds,
-    coef_samples_selfthinning = coef_samples_selfthinning,
-    coef_samples_biomass = coef_samples_biomass
-  )
-
-tic()
-df_db_parallel <- df_samples |>
-  mutate(id = row_number()) |>
-  partition(cl) |> 
-  mutate(result = purrr::pmap_dbl(
-    across(), 
-    function(...) calc_db(
-      tibble(...),
-      data_forest_plots_selfthinning_means,
-      data_forest_plots_selfthinning_sds,
-      coef_samples_selfthinning,
-      coef_samples_biomass
-    )
-  )) |> 
-  collect() |> 
-  dplyr::select(plotID, lon, lat, area_ha, dB = result) |> 
-  mutate(dB_Mg_ha = dB * 10^-3) |> 
-  arrange(plotID)
-toc()
+  
+  tic()
+  df_db <- df_samples |>
+    mutate(id = row_number()) |>
+    partition(cl) |> 
+    mutate(result = purrr::pmap_dbl(
+      across(), 
+      function(...) calc_db(
+        tibble(...),
+        data_forest_plots_selfthinning_means,
+        data_forest_plots_selfthinning_sds,
+        coef_samples_selfthinning,
+        coef_samples_biomass
+      )
+    )) |> 
+    collect() |> 
+    dplyr::select(plotID, lon, lat, area_ha, dB = result) |> 
+    mutate(dB_Mg_ha = dB * 10^-3) |> 
+    arrange(plotID)
+  toc()
+  
+  readr::write_rds(df_db, file = filnam)
+  
+} else {
+  df_db <- read_rds(filnam)
+}
 
 ## Visualisations ---------
 df_db |> 

@@ -42,23 +42,26 @@ calc_db <- function(
   
   # Compute predictions for point_t0 and new sampled coefficients
   logN0_mean <- X %*% as.numeric(new_coeffs_selfthinning)
-  N0_mean <- exp(logN0_mean)
+  N0_mean <- c(exp(logN0_mean))
   
   # Compute predictions for point_t1 and new sampled coefficients
   #logN1_mean <- predict(fit1, newdata = point_t1, re.form = NULL, allow.new.levels = TRUE)
   logN1_mean <- Y %*% as.numeric(new_coeffs_selfthinning)
-  N1_mean <- exp(logN1_mean)
+  N1_mean <- c(exp(logN1_mean))
   
   # 3. Estimate the biomass change, given the QMDj, N0 and N1 as: dB = ak * QMDj^2 * (N1 - N0), 
   ak <- df_samples_onerow |> 
     dplyr::select(all_of(names(as.data.frame(coef_samples_biomass)))) |> 
-    as.matrix()
+    as.matrix() |> 
+    c()
   
   qmd_j <- df_samples_onerow |> 
     dplyr::pull(logQMD) |> 
     exp()
   
   db <- ak * qmd_j^2 * (N1_mean - N0_mean)
+  
+  db <- ifelse(length(db) == 0, NA, db)
   
   return(db)
 }

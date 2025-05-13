@@ -17,36 +17,47 @@ plot_stl_biome <- function(data){
 
 # filter unmanaged data
 data_unm_fc <- function(data){
+  
   data_unm <- data  |>
+    
     # filter for min qmd
-    filter(QMD>=10) |>
+    filter(QMD >= 10) |>
+    
     # filter for forest type
     filter(type == "Forest") |>
+    
     # filter for unmanaged plots
     filter(management == 0) |>
     filter(years_since_management >= 30 | is.na(years_since_management)) |>
+    
     # Filter by min 3 censuses
-    group_by(dataset,plotID) |>
-    mutate(n_census_unm=n()) |>
+    group_by(dataset, plotID) |>
+    mutate(n_census_unm = n()) |>
     ungroup() |>
     relocate(n_census_unm, .after = n_census) |>
-    filter(n_census_unm>=3) 
+    filter(n_census_unm >= 3) 
+  
   return(data_unm)
 }
 
 # filter the upper quantile data points and remove the outliers
 data_filter_fc <- function(data_unm){
+  
   data_fil <- data_unm  |>
+    
     # filter by upper 70th percentile
     # create QMD bins
     # mutate(QMD_bins = cut(QMD, breaks = 600, include.lowest = TRUE))  |>
-    mutate(QMD_bins = cut(QMD, breaks = seq(0,max(QMD),0.25), include.lowest = TRUE))  |>
+    mutate(QMD_bins = cut(QMD, breaks = seq(0, max(QMD), by = 0.25), include.lowest = TRUE))  |>
+    
     # calculate the 75th percentile of density for each qmd
     group_by(QMD_bins) |>
     mutate(upper70 = quantile(density, c(0.70))) |>
     ungroup() |>
+    
     # select upper quantile by QMD bins, i.e., those plots with higher density 
     filter(density >= upper70) |>
+    
     # filter removing outliers
     mutate(q25_density = quantile(logDensity, c(0.25), na.rm = FALSE),
            q75_density = quantile(logDensity, c(0.75), na.rm = FALSE),
@@ -58,8 +69,9 @@ data_filter_fc <- function(data_unm){
            IQR_QMD = IQR(logQMD),
            low_QMD = q25_QMD - 1.5*IQR_QMD,
            upp_QMD = q75_QMD + 1.5*IQR_QMD) |>
-    filter(logDensity>low_density&logDensity<upp_density) |> 
-    filter(logQMD>low_QMD&logQMD<upp_QMD)
+    filter(logDensity > low_density & logDensity < upp_density) |> 
+    filter(logQMD > low_QMD & logQMD < upp_QMD)
+  
   return(data_fil)
 }
 

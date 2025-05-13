@@ -408,7 +408,7 @@ mod_lmm_biome12 = lmer(
 gg_stl_biome12 <- plot_stl_bybiome(
   data_fil_biome12, 
   mod_lmm_biome12, 
-  name = "Boreal Forests/Taiga Forest", 
+  name = "Mediterranean Forests", 
   years = c(1985, 2000, 2015)
 )
 

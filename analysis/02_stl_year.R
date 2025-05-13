@@ -625,7 +625,7 @@ fig1_int1
 
 # biome 4 ----
 # Temperate Broadleaf & Mixed Forests Forest
-data_fil_biome4 <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biome4.rds"))
+data_fil_biome4 <- readRDS(here::here("data/inputs/data_fil_biome4.rds"))
 
 Fit_Year = lmer(logDensity ~ scale(logQMD) * scale(year) + (1|dataset/plotID) + (1|species), 
                 data = data_fil_biome4, na.action = "na.exclude")
@@ -680,7 +680,7 @@ fig1_int4
 
 # biome 5 ----
 # Temperate Conifer Forests Forest
-data_fil_biome5 <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biome5.rds"))
+data_fil_biome5 <- readRDS(here::here("data/inputs/data_fil_biome5.rds"))
 
 Fit_Year = lmer(logDensity ~ scale(logQMD) * scale(year) + (1|dataset/plotID) + (1|species), 
                 data = data_fil_biome5, na.action = "na.exclude")
@@ -735,7 +735,7 @@ fig1_int5
 
 # biome 6 ----
 # Boreal Forests/Taiga Forest
-data_fil_biome6 <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biome6.rds"))
+data_fil_biome6 <- readRDS(here::here("data/inputs/data_fil_biome6.rds"))
 
 Fit_Year = lmer(logDensity ~ scale(logQMD) * scale(year) + (1|dataset/plotID) + (1|species), 
                 data = data_fil_biome6, na.action = "na.exclude",
@@ -791,7 +791,7 @@ fig1_int6
 
 # biome 12 ----
 # Mediterranean Forests
-data_fil_biome12 <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biome12.rds"))
+data_fil_biome12 <- readRDS(here::here("data/inputs/data_fil_biome12.rds"))
 
 Fit_Year = lmer(logDensity ~ scale(logQMD) * scale(year) + (1|plotID) + (1|species), 
                 data = data_fil_biome12, na.action = "na.exclude")
@@ -851,73 +851,81 @@ fig1int
 
 ggsave(paste0(here::here(), "/manuscript/figures/fig1_int.png"), width = 11, height = 7.5, dpi=300)
 
-# Quantile regression ----
-# biome 1 ----
-# Tropical & Subtropical Moist Broadleaf Forests
-data_unm <- readRDS(file.path(here::here(), "/data/inputs/data_unm.rds"))
-data_unm_biome1 <- data_unm |> filter(biomeID==1)
+# Quantile regression ----------------------------------------------------------
+data_unm <- readRDS(here::here("data/data_unm.rds"))
 
-data_unm_biome1 <- data_unm_biome1 |>
-  mutate(logQMD_sc = as.numeric(scale(logQMD)),
-         year_sc = as.numeric(scale(year)))
+## Biome 1 Tropical & Subtropical Moist Broadleaf Forests ----------------------
+data_unm_biome <- data_unm |> 
+  filter(biomeID == 1)
 
-fit_lqmm <- lqmm(logDensity ~ logQMD_sc + year_sc, 
-                 random = ~1, 
-                 group =plotID,
-                 tau = c(0.70,0.90),
-                 data = data_unm_biome1, 
-                 type = "normal") 
-out <- summary(fit_lqmm)
-out
-out$"0.7"
-out$"0.9"
-coef(fit_lqmm)
-ranef <- ranef(fit_lqmm)
+# no scaling on predictors
+fit_lqmm <- lqmm(logDensity ~ logQMD + year,
+                 random = ~1,
+                 group = plotID,
+                 tau = c(0.70, 0.90),
+                 data = data_unm_biome,
+                 type = "normal"
+)
 
-value_1985_sc <- data_unm_biome1 %>%
-  filter(year == "1985") %>%
-  pull(year_sc)
-value_2000_sc <- data_unm_biome1 %>%
-  filter(year == "2000") %>%
-  pull(year_sc)
-value_2015_sc <- data_unm_biome1 %>%
-  filter(year == "2015") %>%
-  pull(year_sc)
+plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Tropical & Subtropical Moist Broadleaf Forests")
 
-data_unm_biome1 <- data_unm_biome1 |>
-  mutate(pred_1985 = out$"0.9"$theta[1] + out$"0.9"$theta[2]*logQMD_sc + out$"0.9"$theta[3]*value_1985_sc[1],
-         pred_2000 = out$"0.9"$theta[1] + out$"0.9"$theta[2]*logQMD_sc + out$"0.9"$theta[3]*value_2000_sc[1],
-         pred_2015 = out$"0.9"$theta[1] + out$"0.9"$theta[2]*logQMD_sc + out$"0.9"$theta[3]*value_2015_sc[1])
+## Biome 4 Temperate Broadleaf & Mixed Forests ----------------------
+data_unm_biome <- data_unm |> 
+  filter(biomeID == 4)
 
-predict <- predict(fit_lqmm, level = 1)
-#predint <- as.data.frame(predint(fit_lqmm, level = 0, alpha = 0.05))
-str(predict)
-data_unm_biome1 <- data_unm_biome1 |>
-  bind_cols(predict) |>
-  rename(pre70 = "0.7",
-         pre90 = "0.9")
+# no scaling on predictors
+fit_lqmm <- lqmm(logDensity ~ logQMD + year,
+                 random = ~1,
+                 group = plotID,
+                 tau = c(0.70, 0.90),
+                 data = data_unm_biome,
+                 type = "normal"
+)
 
-fig_qr <- ggplot() + 
-  geom_point(data = data_unm_biome1, aes(x = logQMD, y = logDensity), alpha=0.3,col="lightsteelblue", size = 1, shape = 16, inherit.aes = FALSE) + 
-  geom_smooth(data = data_unm_biome1, aes(x = logQMD, y = pred_1985, colour="1985" ), method = "lm",fullrange = T,size = .6, se=F) +
-  geom_smooth(data = data_unm_biome1, aes(x = logQMD, y = pred_2000, colour="2000"), method = "lm",fullrange = T,size = .6, se=F) +
-  geom_smooth(data = data_unm_biome1, aes(x = logQMD, y = pred_2015, colour="2015"), method = "lm",fullrange = T,size = .6, se=F) +
-  labs(x = "Quadratic mean diameter (ln QMD)", y = "Stand density (ln N)",title = "Size-density changes as a function of time",
-       caption = paste0("Year estimate = ", 
-                        round(out$tTable$"0.9"[3,1],3), '\n', "Year p-value = ", 
-                        round(out$tTable$"0.9"[3,5],3)))  + 
-  scale_color_manual(name="Year", #expression(paste(italic("Year"))), 
-                     breaks = c("1985","2000", "2015"), 
-                     values = c("#FC4E07", "#00AFBB", "#E7B800")) +
-  theme_bw() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                      axis.text = element_text(size = 10),axis.title = element_text(size = 10),
-                      legend.text = element_text(size = 8),legend.title = element_text(size = 8),
-                      plot.title = element_text(size = 10),
-                      legend.key = element_rect(fill = NA, color = NA),
-                      legend.position = c(.8, .8),
-                      legend.direction="vertical",
-                      legend.box = "horizontal",
-                      legend.margin = margin(2, 2, 2, 2),
-                      legend.key.size = unit(.7, 'cm'),
-                      legend.box.margin = margin(1, 1, 1, 1))
-fig_qr 
+plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Temperate Broadleaf & Mixed Forests")
+
+## Biome 5  Temperate Conifer Forests Forest ----------------------
+data_unm_biome <- data_unm |> 
+  filter(biomeID == 5)
+
+# no scaling on predictors
+fit_lqmm <- lqmm(logDensity ~ logQMD + year,
+                 random = ~1,
+                 group = plotID,
+                 tau = c(0.70, 0.90),
+                 data = data_unm_biome,
+                 type = "normal"
+)
+
+plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Temperate Conifer Forests Forest")
+
+## Biome 6 Boreal Forests/Taiga Forest ----------------------
+data_unm_biome <- data_unm |> 
+  filter(biomeID == 6)
+
+# no scaling on predictors
+fit_lqmm <- lqmm(logDensity ~ logQMD + year,
+                 random = ~1,
+                 group = plotID,
+                 tau = c(0.70, 0.90),
+                 data = data_unm_biome,
+                 type = "normal"
+)
+
+plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Boreal Forests/Taiga Forest")
+
+## Biome 12 Mediterranean Forests ----------------------
+data_unm_biome <- data_unm |> 
+  filter(biomeID == 12)
+
+# no scaling on predictors
+fit_lqmm <- lqmm(logDensity ~ logQMD + year,
+                 random = ~1,
+                 group = plotID,
+                 tau = c(0.70, 0.90),
+                 data = data_unm_biome,
+                 type = "normal"
+)
+
+plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Tropical & Subtropical Moist Broadleaf Forests")
+

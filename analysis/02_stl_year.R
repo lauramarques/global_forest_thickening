@@ -858,6 +858,11 @@ data_unm <- readRDS(here::here("data/data_unm.rds"))
 data_unm_biome <- data_unm |> 
   filter(biomeID == 1)
 
+data_unm_biome |> 
+  ggplot(aes(logQMD, logDensity, color = year)) +
+  geom_point() +
+  scale_color_viridis_c()
+
 # no scaling on predictors
 fit_lqmm <- lqmm(logDensity ~ logQMD + year,
                  random = ~1,
@@ -869,7 +874,26 @@ fit_lqmm <- lqmm(logDensity ~ logQMD + year,
 
 plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Tropical & Subtropical Moist Broadleaf Forests")
 
-## Biome 4 Temperate Broadleaf & Mixed Forests ----------------------
+### Quantile regression within QMD bins ----------------------------------------
+# Test whether upward shift of 90% quantile is significant within logQMD-bins
+# returns data frame with pval indicating significance level of a positive
+# effect of year.
+df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
+
+df_lqmm_byqmdbin |> 
+  ggplot(aes(coef_year)) +
+  geom_density() +
+  geom_vline(xintercept = 0.0, linetype = "dotted") +
+  theme_classic()
+
+df_lqmm_byqmdbin |> 
+  ggplot(aes(bin_lqmm, coef_year)) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = coef_year_lower, ymax = coef_year_upper), width = 0) +
+  theme_classic() +
+  geom_hline(yintercept = 0, linetype = "dotted")
+
+## Biome 4 Temperate Broadleaf & Mixed Forests ---------------------------------
 data_unm_biome <- data_unm |> 
   filter(biomeID == 4)
 
@@ -883,6 +907,26 @@ fit_lqmm <- lqmm(logDensity ~ logQMD + year,
 )
 
 plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Temperate Broadleaf & Mixed Forests")
+
+### Quantile regression within QMD bins ----------------------------------------
+# Test whether upward shift of 90% quantile is significant within logQMD-bins
+# returns data frame with pval indicating significance level of a positive
+# effect of year.
+df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
+
+df_lqmm_byqmdbin |> 
+  ggplot(aes(coef_year)) +
+  geom_density() +
+  geom_vline(xintercept = 0.0, linetype = "dotted") +
+  theme_classic()
+
+df_lqmm_byqmdbin |> 
+  ggplot(aes(bin_lqmm, coef_year)) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = coef_year_lower, ymax = coef_year_upper), width = 0) +
+  theme_classic() +
+  geom_hline(yintercept = 0, linetype = "dotted")
+
 
 ## Biome 5  Temperate Conifer Forests Forest ----------------------
 data_unm_biome <- data_unm |> 
@@ -899,9 +943,42 @@ fit_lqmm <- lqmm(logDensity ~ logQMD + year,
 
 plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Temperate Conifer Forests Forest")
 
+### Quantile regression within QMD bins ----------------------------------------
+# Test whether upward shift of 90% quantile is significant within logQMD-bins
+# returns data frame with pval indicating significance level of a positive
+# effect of year.
+df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
+
+df_lqmm_byqmdbin |> 
+  ggplot(aes(coef_year)) +
+  geom_density() +
+  geom_vline(xintercept = 0.0, linetype = "dotted") +
+  theme_classic()
+
+df_lqmm_byqmdbin |> 
+  ggplot(aes(bin_lqmm, coef_year)) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = coef_year_lower, ymax = coef_year_upper), width = 0) +
+  theme_classic() +
+  geom_hline(yintercept = 0, linetype = "dotted")
+
+
 ## Biome 6 Boreal Forests/Taiga Forest ----------------------
 data_unm_biome <- data_unm |> 
   filter(biomeID == 6)
+
+# XXX additional filter: remove plots with no change in ln(N)
+data_unm_biome <- data_unm_biome |> 
+  group_by(plotID) |> 
+  mutate(var_logdensity = var(logDensity)) |> 
+  filter(var_logdensity > 0.001)
+
+  # XXX cold use additional filter: remove plots with declining logQMD
+
+data_unm_biome |> 
+  ggplot(aes(logQMD, logDensity, color = year)) +
+  geom_point() +
+  scale_color_viridis_c()
 
 # no scaling on predictors
 fit_lqmm <- lqmm(logDensity ~ logQMD + year,
@@ -913,6 +990,26 @@ fit_lqmm <- lqmm(logDensity ~ logQMD + year,
 )
 
 plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Boreal Forests/Taiga Forest")
+
+### Quantile regression within QMD bins ----------------------------------------
+# Test whether upward shift of 90% quantile is significant within logQMD-bins
+# returns data frame with pval indicating significance level of a positive
+# effect of year.
+df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
+
+df_lqmm_byqmdbin |> 
+  ggplot(aes(coef_year)) +
+  geom_density() +
+  geom_vline(xintercept = 0.0, linetype = "dotted") +
+  theme_classic()
+
+df_lqmm_byqmdbin |> 
+  ggplot(aes(bin_lqmm, coef_year)) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = coef_year_lower, ymax = coef_year_upper), width = 0) +
+  theme_classic() +
+  geom_hline(yintercept = 0, linetype = "dotted")
+
 
 ## Biome 12 Mediterranean Forests ----------------------
 data_unm_biome <- data_unm |> 
@@ -928,4 +1025,23 @@ fit_lqmm <- lqmm(logDensity ~ logQMD + year,
 )
 
 plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Tropical & Subtropical Moist Broadleaf Forests")
+
+### Quantile regression within QMD bins ----------------------------------------
+# Test whether upward shift of 90% quantile is significant within logQMD-bins
+# returns data frame with pval indicating significance level of a positive
+# effect of year.
+df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
+
+df_lqmm_byqmdbin |> 
+  ggplot(aes(coef_year)) +
+  geom_density() +
+  geom_vline(xintercept = 0.0, linetype = "dotted") +
+  theme_classic()
+
+df_lqmm_byqmdbin |> 
+  ggplot(aes(bin_lqmm, coef_year)) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = coef_year_lower, ymax = coef_year_upper), width = 0) +
+  theme_classic() +
+  geom_hline(yintercept = 0, linetype = "dotted")
 

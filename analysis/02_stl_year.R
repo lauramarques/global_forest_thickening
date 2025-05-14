@@ -858,10 +858,15 @@ data_unm <- readRDS(here::here("data/data_unm.rds"))
 data_unm_biome <- data_unm |> 
   filter(biomeID == 1)
 
-# additional filter: remove plots with no change in ln(N)
+# remove disturbed plots
 data_unm_biome <- data_unm_biome |> 
-  group_by(plotID) |> 
-  mutate(var_logdensity = var(logDensity)) |> 
+  identify_disturbed_plots() |> 
+  filter(!disturbed)
+
+# Additional filter: remove plots with no change in ln(N)
+data_unm_biome <- data_unm_biome |>
+  group_by(plotID) |>
+  mutate(var_logdensity = diff(range(logDensity))) |>
   filter(var_logdensity > 0.001)
 
 data_unm_biome |> 
@@ -903,10 +908,15 @@ df_lqmm_byqmdbin |>
 data_unm_biome <- data_unm |> 
   filter(biomeID == 4)
 
-# Additional filter: remove plots with no change in ln(N)
+# remove disturbed plots
 data_unm_biome <- data_unm_biome |> 
-  group_by(plotID) |> 
-  mutate(var_logdensity = var(logDensity)) |> 
+  identify_disturbed_plots() |> 
+  filter(!disturbed)
+
+# Additional filter: remove plots with no change in ln(N)
+data_unm_biome <- data_unm_biome |>
+  group_by(plotID) |>
+  mutate(var_logdensity = diff(range(logDensity))) |>
   filter(var_logdensity > 0.001)
 
 # no scaling on predictors
@@ -944,10 +954,15 @@ df_lqmm_byqmdbin |>
 data_unm_biome <- data_unm |> 
   filter(biomeID == 5)
 
-# Additional filter: remove plots with no change in ln(N)
+# remove disturbed plots
 data_unm_biome <- data_unm_biome |> 
-  group_by(plotID) |> 
-  mutate(var_logdensity = var(logDensity)) |> 
+  identify_disturbed_plots() |> 
+  filter(!disturbed)
+
+# Additional filter: remove plots with no change in ln(N)
+data_unm_biome <- data_unm_biome |>
+  group_by(plotID) |>
+  mutate(var_logdensity = diff(range(logDensity))) |>
   filter(var_logdensity > 0.001)
 
 # no scaling on predictors
@@ -985,34 +1000,16 @@ df_lqmm_byqmdbin |>
 data_unm_biome <- data_unm |> 
   filter(biomeID == 6)
 
-# Additional filter: remove plots with no change in ln(N)
+# remove disturbed plots
 data_unm_biome <- data_unm_biome |> 
-  group_by(plotID) |> 
-  mutate(var_logdensity = var(logDensity)) |> 
+  identify_disturbed_plots() |> 
+  filter(!disturbed)
+
+# Additional filter: remove plots with no change in ln(N)
+data_unm_biome <- data_unm_biome |>
+  group_by(plotID) |>
+  mutate(var_logdensity = diff(range(logDensity))) |>
   filter(var_logdensity > 0.001)
-
-
-# # XXX cold use additional filter: remove plots with declining logQMD
-# # this looks too restrictive to require positive QMD and negative Density trends
-# tmp <- data_unm_biome |> 
-#   group_by(plotID) |> 
-#   nest() |> 
-#   mutate(
-#     linmod_logdensity = purrr::map(data, ~lm(logDensity ~ year, data = .)),
-#     linmod_logqmd = purrr::map(data, ~lm(logQMD ~ year, data = .))
-#     ) |> 
-#   mutate(
-#     trend_logdensity = purrr::map_dbl(linmod_logdensity, ~coef(.)["year"]),
-#     trend_logqmd = purrr::map_dbl(linmod_logqmd, ~coef(.)["year"])
-#   )
-# 
-# hist(tmp$trend_logqmd)
-# hist(tmp$trend_logdensity)
-
-data_unm_biome |> 
-  ggplot(aes(logQMD, logDensity, color = year)) +
-  geom_point() +
-  scale_color_viridis_c()
 
 # no scaling on predictors
 fit_lqmm <- lqmm(logDensity ~ logQMD + year,
@@ -1049,10 +1046,15 @@ df_lqmm_byqmdbin |>
 data_unm_biome <- data_unm |> 
   filter(biomeID == 12)
 
-# Additional filter: remove plots with no change in ln(N)
+# remove disturbed plots
 data_unm_biome <- data_unm_biome |> 
-  group_by(plotID) |> 
-  mutate(var_logdensity = var(logDensity)) |> 
+  identify_disturbed_plots() |> 
+  filter(!disturbed)
+
+# Additional filter: remove plots with no change in ln(N)
+data_unm_biome <- data_unm_biome |>
+  group_by(plotID) |>
+  mutate(var_logdensity = diff(range(logDensity))) |>
   filter(var_logdensity > 0.001)
 
 # no scaling on predictors

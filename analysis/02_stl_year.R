@@ -973,7 +973,22 @@ data_unm_biome <- data_unm_biome |>
   mutate(var_logdensity = var(logDensity)) |> 
   filter(var_logdensity > 0.001)
 
-  # XXX cold use additional filter: remove plots with declining logQMD
+# XXX cold use additional filter: remove plots with declining logQMD
+# this looks too restrictive to require positive QMD and negative Density trends
+tmp <- data_unm_biome |> 
+  group_by(plotID) |> 
+  nest() |> 
+  mutate(
+    linmod_logdensity = purrr::map(data, ~lm(logDensity ~ year, data = .)),
+    linmod_logqmd = purrr::map(data, ~lm(logQMD ~ year, data = .))
+    ) |> 
+  mutate(
+    trend_logdensity = purrr::map_dbl(linmod_logdensity, ~coef(.)["year"]),
+    trend_logqmd = purrr::map_dbl(linmod_logqmd, ~coef(.)["year"])
+  )
+
+hist(tmp$trend_logqmd)
+hist(tmp$trend_logdensity)
 
 data_unm_biome |> 
   ggplot(aes(logQMD, logDensity, color = year)) +

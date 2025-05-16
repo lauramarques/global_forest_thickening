@@ -3,14 +3,16 @@ calc_lqmm_byqmdbin <- function(df){
   nbins <- max(round(length(df$logQMD[!is.na(df$logQMD)]) / 300), 10)
   use_range <- range(df$logQMD)
   bin_edges <- seq(use_range[1], use_range[2], length.out = nbins + 1)
+  bin_labels <- bin_edges[1:length(bin_edges)-1] + (bin_edges[2] - bin_edges[1])/2
   
   df |> 
     mutate(bin_lqmm = cut(
       logQMD, 
       breaks = bin_edges, 
       length.out = nbins + 1, 
-      include.lowest = TRUE, 
-      labels = FALSE)
+      include.lowest = TRUE,
+      labels = bin_labels
+      )
     ) |> 
     group_by(bin_lqmm) |> 
     nest() |> 

@@ -858,10 +858,37 @@ data_unm <- readRDS(here::here("data/data_unm.rds"))
 data_unm_biome <- data_unm |> 
   filter(biomeID == 1)
 
+# identify disturbed plots
+data_unm_biome <- data_unm_biome |> 
+  identify_disturbed_plots()
+
+breaks <- get_breaks(data_unm_biome$year)
+
+df_disturbed <- data_unm_biome |> 
+  mutate(year_bin = cut(
+    year, 
+    breaks = breaks, 
+    labels = breaks[1:length(breaks)-1] + 2.5,
+    include.lowest = TRUE
+  )) |> 
+  group_by(year_bin) |> 
+  summarise(
+    nplots = length(unique(plotID)),
+    ndisturbed = sum(disturbed, na.rm = TRUE)
+  ) |> 
+  mutate(fdisturbed = ndisturbed / nplots)
+
+# plot fraction of disturbed over time
+df_disturbed |> 
+  ggplot(aes(as.numeric(as.character(year_bin)), car::logit(fdisturbed))) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red") +
+  theme_classic() +
+  labs(x = "Year",  y = expression(logit(fraction ~ disturbed)))
+
 # remove disturbed plots
 data_unm_biome <- data_unm_biome |> 
-  identify_disturbed_plots() |> 
-  filter(!disturbed)
+  filter(ndisturbed == 0)
 
 # Additional filter: remove plots with no change in ln(N)
 data_unm_biome <- data_unm_biome |>
@@ -893,7 +920,7 @@ df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
 
 df_lqmm_byqmdbin |> 
   ggplot(aes(coef_year)) +
-  geom_density() +
+  geom_histogram(fill = "grey", color = "black", bins = 12) +
   geom_vline(xintercept = 0.0, linetype = "dotted") +
   theme_classic()
 
@@ -908,10 +935,37 @@ df_lqmm_byqmdbin |>
 data_unm_biome <- data_unm |> 
   filter(biomeID == 4)
 
+# identify disturbed plots
+data_unm_biome <- data_unm_biome |> 
+  identify_disturbed_plots()
+
+breaks <- get_breaks(data_unm_biome$year)
+
+df_disturbed <- data_unm_biome |> 
+  mutate(year_bin = cut(
+    year, 
+    breaks = breaks, 
+    labels = breaks[1:length(breaks)-1] + 2.5,
+    include.lowest = TRUE
+  )) |> 
+  group_by(year_bin) |> 
+  summarise(
+    nplots = length(unique(plotID)),
+    ndisturbed = sum(disturbed, na.rm = TRUE)
+  ) |> 
+  mutate(fdisturbed = ndisturbed / nplots)
+
+# plot fraction of disturbed over time
+df_disturbed |> 
+  ggplot(aes(as.numeric(as.character(year_bin)), car::logit(fdisturbed))) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red") +
+  theme_classic() +
+  labs(x = "Year",  y = expression(logit(fraction ~ disturbed)))
+
 # remove disturbed plots
 data_unm_biome <- data_unm_biome |> 
-  identify_disturbed_plots() |> 
-  filter(!disturbed)
+  filter(ndisturbed == 0)
 
 # Additional filter: remove plots with no change in ln(N)
 data_unm_biome <- data_unm_biome |>
@@ -938,7 +992,7 @@ df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
 
 df_lqmm_byqmdbin |> 
   ggplot(aes(coef_year)) +
-  geom_density() +
+  geom_histogram(fill = "grey", color = "black", bins = 12) +
   geom_vline(xintercept = 0.0, linetype = "dotted") +
   theme_classic()
 
@@ -954,10 +1008,37 @@ df_lqmm_byqmdbin |>
 data_unm_biome <- data_unm |> 
   filter(biomeID == 5)
 
+# identify disturbed plots
+data_unm_biome <- data_unm_biome |> 
+  identify_disturbed_plots()
+
+breaks <- get_breaks(data_unm_biome$year)
+
+df_disturbed <- data_unm_biome |> 
+  mutate(year_bin = cut(
+    year, 
+    breaks = breaks, 
+    labels = breaks[1:length(breaks)-1] + 2.5,
+    include.lowest = TRUE
+  )) |> 
+  group_by(year_bin) |> 
+  summarise(
+    nplots = length(unique(plotID)),
+    ndisturbed = sum(disturbed, na.rm = TRUE)
+  ) |> 
+  mutate(fdisturbed = ndisturbed / nplots)
+
+# plot fraction of disturbed over time
+df_disturbed |> 
+  ggplot(aes(as.numeric(as.character(year_bin)), car::logit(fdisturbed))) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red") +
+  theme_classic() +
+  labs(x = "Year",  y = expression(logit(fraction ~ disturbed)))
+
 # remove disturbed plots
 data_unm_biome <- data_unm_biome |> 
-  identify_disturbed_plots() |> 
-  filter(!disturbed)
+  filter(ndisturbed == 0)
 
 # Additional filter: remove plots with no change in ln(N)
 data_unm_biome <- data_unm_biome |>
@@ -984,7 +1065,7 @@ df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
 
 df_lqmm_byqmdbin |> 
   ggplot(aes(coef_year)) +
-  geom_density() +
+  geom_histogram(fill = "grey", color = "black", bins = 12) +
   geom_vline(xintercept = 0.0, linetype = "dotted") +
   theme_classic()
 
@@ -1000,10 +1081,37 @@ df_lqmm_byqmdbin |>
 data_unm_biome <- data_unm |> 
   filter(biomeID == 6)
 
+# identify disturbed plots
+data_unm_biome <- data_unm_biome |> 
+  identify_disturbed_plots()
+
+breaks <- get_breaks(data_unm_biome$year)
+
+df_disturbed <- data_unm_biome |> 
+  mutate(year_bin = cut(
+    year, 
+    breaks = breaks, 
+    labels = breaks[1:length(breaks)-1] + 2.5,
+    include.lowest = TRUE
+  )) |> 
+  group_by(year_bin) |> 
+  summarise(
+    nplots = length(unique(plotID)),
+    ndisturbed = sum(disturbed, na.rm = TRUE)
+  ) |> 
+  mutate(fdisturbed = ndisturbed / nplots)
+
+# plot fraction of disturbed over time
+df_disturbed |> 
+  ggplot(aes(as.numeric(as.character(year_bin)), car::logit(fdisturbed))) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red") +
+  theme_classic() +
+  labs(x = "Year",  y = expression(logit(fraction ~ disturbed)))
+
 # remove disturbed plots
 data_unm_biome <- data_unm_biome |> 
-  identify_disturbed_plots() |> 
-  filter(!disturbed)
+  filter(ndisturbed == 0)
 
 # Additional filter: remove plots with no change in ln(N)
 data_unm_biome <- data_unm_biome |>
@@ -1030,7 +1138,7 @@ df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
 
 df_lqmm_byqmdbin |> 
   ggplot(aes(coef_year)) +
-  geom_density() +
+  geom_histogram(fill = "grey", color = "black", bins = 12) +
   geom_vline(xintercept = 0.0, linetype = "dotted") +
   theme_classic()
 
@@ -1046,10 +1154,37 @@ df_lqmm_byqmdbin |>
 data_unm_biome <- data_unm |> 
   filter(biomeID == 12)
 
+# identify disturbed plots
+data_unm_biome <- data_unm_biome |> 
+  identify_disturbed_plots()
+
+breaks <- get_breaks(data_unm_biome$year)
+
+df_disturbed <- data_unm_biome |> 
+  mutate(year_bin = cut(
+    year, 
+    breaks = breaks, 
+    labels = breaks[1:length(breaks)-1] + 2.5,
+    include.lowest = TRUE
+  )) |> 
+  group_by(year_bin) |> 
+  summarise(
+    nplots = length(unique(plotID)),
+    ndisturbed = sum(disturbed, na.rm = TRUE)
+  ) |> 
+  mutate(fdisturbed = ndisturbed / nplots)
+
+# plot fraction of disturbed over time
+df_disturbed |> 
+  ggplot(aes(as.numeric(as.character(year_bin)), car::logit(fdisturbed))) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red") +
+  theme_classic() +
+  labs(x = "Year",  y = expression(logit(fraction ~ disturbed)))
+
 # remove disturbed plots
 data_unm_biome <- data_unm_biome |> 
-  identify_disturbed_plots() |> 
-  filter(!disturbed)
+  filter(ndisturbed == 0)
 
 # Additional filter: remove plots with no change in ln(N)
 data_unm_biome <- data_unm_biome |>
@@ -1066,7 +1201,7 @@ fit_lqmm <- lqmm(logDensity ~ logQMD + year,
                  type = "normal"
 )
 
-plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Tropical & Subtropical Moist Broadleaf Forests")
+plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Mediterranean Forests")
 
 ### Quantile regression within QMD bins ----------------------------------------
 # Test whether upward shift of 90% quantile is significant within logQMD-bins
@@ -1076,7 +1211,7 @@ df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
 
 df_lqmm_byqmdbin |> 
   ggplot(aes(coef_year)) +
-  geom_density() +
+  geom_histogram(fill = "grey", color = "black", bins = 12) +
   geom_vline(xintercept = 0.0, linetype = "dotted") +
   theme_classic()
 

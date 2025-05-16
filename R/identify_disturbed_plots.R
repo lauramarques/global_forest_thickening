@@ -5,23 +5,24 @@ identify_disturbed_plots <- function(df){
   plots_disturbed <- df |> 
     group_by(plotID) |> 
     nest() |> 
-    mutate(ndisturb = purrr::map_int(data, ~get_ndisturb(.))) |> 
-    filter(ndisturb > 0) |> 
-    pull(plotID) |> 
-    unique()
-  
-  df <- df |> 
-    mutate(disturbed = ifelse(plotID %in% plots_disturbed, TRUE, FALSE))
+    mutate(data = purrr::map(data, ~identify_disturbed_byinventory(.))) |> 
+    mutate(ndisturbed = purrr::map_int(data, ~get_sum_disturbed(.))) |> 
+    unnest(data)
+}
+
+get_sum_disturbed <- function(df){
+  sum(df$disturbed, na.rm = TRUE)
 }
 
 # counts intervals between inventories that look like disturbance was at play
-get_ndisturb <- function(df){
-  ndisturb <- df |> 
-    dplyr::select(year, logQMD, logDensity) |> 
+identify_disturbed_byinventory <- function(df){
+  df |> 
     mutate(
       dlogQMD = logQMD - lag(logQMD),
       dlogDensity = logDensity - lag(logDensity)
     ) |> 
-    filter(dlogQMD < 0 & dlogDensity < 0) |> 
-    nrow()
+    mutate(
+      disturbed = ifelse(dlogQMD < 0 & dlogDensity < 0, TRUE, FALSE)
+      )
+    
 }

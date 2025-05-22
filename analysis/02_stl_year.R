@@ -33,6 +33,7 @@ source(here("R/plot_stl_bybiome.R"))
 
 # load data
 data_fil_biomes <- readRDS(here("data/data_fil_biomes.rds"))
+data_fil_biomes <- readRDS(here("~/GFDYglobe/data/inputs/data_fil_biomes.rds"))
 
 plot_map_fil <-  plot_map(data_fil_biomes)
 plot_map_fil
@@ -60,10 +61,11 @@ mod_lmm_biome1 = lmer(
   logDensity ~ scale(logQMD) + 
     scale(year) + 
     (1|dataset/plotID) + 
-    (1|species), # + (1|years_since_management_bins), 
+    (1|species), 
   data = data_fil_biome1, 
   na.action = "na.exclude"
   )
+summary(mod_lmm_biome1)
 
 ### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome1 <- plot_stl_bybiome(
@@ -71,13 +73,12 @@ gg_stl_biome1 <- plot_stl_bybiome(
   mod_lmm_biome1, 
   name = "Tropical Moist Broadleaf Forests", 
   years = c(1985, 2000, 2015)
-)
+) + theme(legend.position = "right")
 
 ### Data over years ------------------------------------------------------------
 hist_Year <- ggplot(data_fil_biome1, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
   theme_classic()
-
 hist_Year
 
 ### STL shift ------------------------------------------------------------------
@@ -150,6 +151,7 @@ mod_lmm_biome4 = lmer(
   data = data_fil_biome4, 
   na.action = "na.exclude"
 )
+summary(mod_lmm_biome4)
 
 ### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome4 <- plot_stl_bybiome(
@@ -234,6 +236,7 @@ mod_lmm_biome5 = lmer(
   data = data_fil_biome5, 
   na.action = "na.exclude"
 )
+summary(mod_lmm_biome5)
 
 ### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome5 <- plot_stl_bybiome(
@@ -475,25 +478,22 @@ change_n
 # 
 
 # Publication Figure 1 ---------------------------------------------------------
-legend <- get_legend(gg_stl_biome1 + theme(legend.position = "right"))
-
-fig1 <- cowplot::plot_grid(
-  gg_stl_biome1, 
-  gg_stl_biome4, 
-  gg_stl_biome5, 
-  gg_stl_biome6, 
-  gg_stl_biome12,
-  legend,
-  ncol = 3
-)
+fig1 <- 
+  gg_stl_biome1 + 
+  gg_stl_biome4 + 
+  gg_stl_biome5 + 
+  gg_stl_biome6 + 
+  gg_stl_biome12 +
+  guide_area() +
+  plot_layout(ncol = 3, guides = "collect") +
+  plot_annotation(tag_levels = "a",tag_suffix = ")")
 
 ggsave(
-  filename = here::here("manuscript/figures/fig1.pdf"),
+  filename = here::here("manuscript/figures/fig1.png"),
   plot = fig1,
   width = 11, 
   height = 7.5
 )
-
 
 # # Special case of BCI ----------------------------------------------------------
 # 
@@ -567,289 +567,151 @@ ggsave(
 #        caption = paste0("Year estimate = ", caption$estimate, '\n', "Year p-value = ", caption$pvalue))
 # figbci_4_8
 
-# Interaction models ----
-# biome 1 ----
-# Tropical & Subtropical Moist Broadleaf Forests
+# Interaction models -----------------------------------------------------------
 
-Fit_Year = lmer(logDensity ~ scale(logQMD) * scale(year) + (1|dataset/plotID) + (1|species),
-                data = data_fil_biome1, na.action = "na.exclude")
-summary(Fit_Year)
-r.squaredGLMM(Fit_Year)
-plot(allEffects(Fit_Year))
-out <- summary(Fit_Year)
-years <- as.integer(summary(data_fil_biome1$year))
-caption <- out$coefficients |>
-  as_tibble() |>
-  mutate(Estimate = round(Estimate,3),
-         pvalue = signif(`Pr(>|t|)`,digits=3),
-         pvalue=ifelse(pvalue<0.001,"<0.001 ***",round(pvalue,3)))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
-           terms = c("logQMD", "year[1985,2000,2015]")) + theme_classic() 
+## Biome 1: Tropical & Subtropical Moist Broadleaf Forests  ---------------------
+### Fit model ------------------------------------------------------------------
+mod_lmm_int_biome1 = lmer(
+  logDensity ~ scale(logQMD) * 
+    scale(year) + 
+    (1|dataset/plotID) + 
+    (1|species), 
+  data = data_fil_biome1, 
+  na.action = "na.exclude"
+)
+summary(mod_lmm_int_biome1)
 
-fig_qmd1 <- plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
+### Plot self-thinning line ----------------------------------------------------
+gg_stl_int_biome1 <- plot_stl_bybiome(
+  data_fil_biome1, 
+  mod_lmm_int_biome1, 
+  name = "Tropical Moist Broadleaf Forests", 
+  years = c(1985, 2000, 2015)
+) + theme(legend.position = "right")
+
+gg_qmd_int_biome1 <- plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
                        terms = c("year","logQMD[2,3,4]")) + theme_classic() + ggtitle("Tropical Moist Broadleaf Forests")
-fig_qmd1
+gg_qmd_int_biome1
 
-pred <- ggpredict(Fit_Year, terms = c("logQMD","year[1985,2000,2015]"), full.data = TRUE) # full.data = TRUE to include random effects. full.data = FALSE ignores group-specific random effects and gives predictions for an "average" group.
-plot(pred, add.data = F) 
-preddata <- as.data.frame(pred)
+## Biome 4: Temperate Broadleaf & Mixed Forests Forest  ------------------------
+### Fit model ------------------------------------------------------------------
+mod_lmm_int_biome4 = lmer(
+  logDensity ~ scale(logQMD) * 
+    scale(year) + 
+    (1|dataset/plotID) + 
+    (1|species), 
+  data = data_fil_biome4, 
+  na.action = "na.exclude"
+)
+summary(mod_lmm_int_biome4)
 
-fig1_int1 <- ggplot() + 
-  geom_point(data = data_fil_biome1, aes(x = logQMD, y = logDensity), alpha=0.5, size = 1,col="darkgrey", shape = 16, inherit.aes = FALSE) + 
-  geom_ribbon(data = preddata, aes(x = x, y = predicted,ymin=conf.low,ymax=conf.high,fill=group),alpha=.2,show.legend=T) + 
-  geom_smooth(data= preddata, aes(x=x, y=predicted, color=group), method = "lm",fullrange = F,size = .6, se=F) +
-  labs(x = "ln QMD", y = "ln N",title = "Tropical Moist Broadleaf Forests",color  = "Year") +
-  annotate("text", x = 4.5, y = 9.2, 
-           label = paste0("n = ",dim(data_fil_biome1)[1], '\n', 
-                          "p-value[year] = ", caption$pvalue[3], '\n', 
-                          "p-value[int] = ", caption$pvalue[4]),
-           #label = paste0("n = ",dim(data_fil_biome1)[1]),
-           size = 3, hjust = 1, vjust = 1) +
-  scale_color_manual("Year", #expression(paste(italic("Year"))), 
-                     breaks = c("1985","2000", "2015"), 
-                     values = c("#21918c", "#fde725", "#440154")) +
-  scale_fill_manual("Year", #expression(paste(italic("Year"))), 
-                    breaks = c("1985","2000", "2015"), 
-                    values = c("#21918c", "#fde725", "#440154")) +
-  theme_classic() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                           axis.text = element_text(size = 12),axis.title = element_text(size = 12),
-                           legend.text = element_text(size = 10),legend.title = element_text(size = 10),
-                           plot.title = element_text(size = 12),
-                           legend.key = element_rect(fill = NA, color = NA),
-                           legend.position = "bottom",
-                           plot.caption = element_text(vjust = -1),
-                           plot.title.position = "plot") +
-  scale_x_continuous(limits = c(2,4.5),breaks = seq(2,4,1)) +
-  scale_y_continuous(limits = c(2.9,9.3),breaks = seq(4,8,2))
-fig1_int1
+### Plot self-thinning line ----------------------------------------------------
+gg_stl_int_biome4 <- plot_stl_bybiome(
+  data_fil_biome4, 
+  mod_lmm_int_biome4, 
+  name = "Tropical Moist Broadleaf Forests", 
+  years = c(1985, 2000, 2015)
+)
 
-# biome 4 ----
-# Temperate Broadleaf & Mixed Forests Forest
-data_fil_biome4 <- readRDS(here::here("data/inputs/data_fil_biome4.rds"))
+## Biome 4: Temperate Broadleaf & Mixed Forests   ------------------------------
+### Fit model ------------------------------------------------------------------
+mod_lmm_int_biome4 = lmer(
+  logDensity ~ scale(logQMD) * 
+    scale(year) + 
+    (1|dataset/plotID) + 
+    (1|species), 
+  data = data_fil_biome4, 
+  na.action = "na.exclude"
+)
+summary(mod_lmm_int_biome4)
 
-Fit_Year = lmer(logDensity ~ scale(logQMD) * scale(year) + (1|dataset/plotID) + (1|species), 
-                data = data_fil_biome4, na.action = "na.exclude")
-summary(Fit_Year)
-r.squaredGLMM(Fit_Year)
-plot(allEffects(Fit_Year))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, terms = c("logQMD","year"))
-out <- summary(Fit_Year)
-years <- as.integer(summary(data_fil_biome4$year))
-caption <- out$coefficients |>
-  as_tibble() |>
-  mutate(Estimate = round(Estimate,3),
-         pvalue = signif(`Pr(>|t|)`,digits=3),
-         pvalue=ifelse(pvalue<0.001,"<0.001 ***",round(pvalue,3)))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
-           terms = c("logQMD", "year[1985,2000,2015]")) + theme_classic() 
+### Plot self-thinning line ----------------------------------------------------
+gg_stl_int_biome4 <- plot_stl_bybiome(
+  data_fil_biome4, 
+  mod_lmm_int_biome4, 
+  name = "Tropical Moist Broadleaf Forests", 
+  years = c(1985, 2000, 2015)
+)
 
-fig_qmd4 <- plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
-                       terms = c("year","logQMD[2,3,4]")) + theme_classic() + ggtitle("Temperate Broadleaf & Mixed Forests")
-fig_qmd4
+## Biome 5: Temperate Conifer Forests    ---------------------------------------
+### Fit model ------------------------------------------------------------------
+mod_lmm_int_biome5 = lmer(
+  logDensity ~ scale(logQMD) * 
+    scale(year) + 
+    (1|dataset/plotID) + 
+    (1|species), 
+  data = data_fil_biome5, 
+  na.action = "na.exclude"
+)
+summary(mod_lmm_int_biome5)
 
-pred <- ggpredict(Fit_Year, terms = c("logQMD","year[1985,2000,2015]]"), full.data = TRUE)
-plot(pred, add.data = F) 
-preddata <- as.data.frame(pred)
+### Plot self-thinning line ----------------------------------------------------
+gg_stl_int_biome5 <- plot_stl_bybiome(
+  data_fil_biome5, 
+  mod_lmm_int_biome5, 
+  name = "Tropical Moist Broadleaf Forests", 
+  years = c(1985, 2000, 2015)
+)
 
-fig1_int4 <- ggplot() + 
-  geom_point(data = data_fil_biome4, aes(x = logQMD, y = logDensity), alpha=0.5, size = 1,col="darkgrey", shape = 16, inherit.aes = FALSE) + 
-  geom_ribbon(data = preddata, aes(x = x, y = predicted,ymin=conf.low,ymax=conf.high,fill=group),alpha=.2,show.legend=T) + 
-  geom_smooth(data= preddata, aes(x=x, y=predicted, color=group), method = "lm",fullrange = F,size = .6, se=F) +
-  labs(x = "ln QMD", y = "ln N",title = "Temperate Broadleaf & Mixed Forests",color  = "Year") +
-  annotate("text", x = 4.5, y = 9.2, 
-           label = paste0("n = ",dim(data_fil_biome4)[1], '\n', 
-                          "p-value[year] = ", caption$pvalue[3], '\n', 
-                          "p-value[int] = ", caption$pvalue[4]),
-           size = 3, hjust = 1, vjust = 1) +
-  scale_color_manual("Year", #expression(paste(italic("Year"))), 
-                     breaks = c("1985","2000", "2015"), 
-                     values = c("#21918c", "#fde725", "#440154")) +
-  scale_fill_manual("Year", #expression(paste(italic("Year"))), 
-                    breaks = c("1985","2000", "2015"), 
-                    values = c("#21918c", "#fde725", "#440154")) +
-  theme_classic() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                          axis.text = element_text(size = 12),axis.title = element_text(size = 12),
-                          legend.text = element_text(size = 10),legend.title = element_text(size = 10),
-                          plot.title = element_text(size = 12),
-                          legend.key = element_rect(fill = NA, color = NA),
-                          legend.position = "bottom",
-                          plot.caption = element_text(vjust = 0.1)) +
-  scale_x_continuous(limits = c(2,4.5),breaks = seq(2,4,1)) +
-  scale_y_continuous(limits = c(2.9,9.3),breaks = seq(4,8,2))
-fig1_int4
+## Biome 6: Boreal Forests/Taiga  ----------------------------------------------
+### Fit model ------------------------------------------------------------------
+mod_lmm_int_biome6 = lmer(
+  logDensity ~ scale(logQMD) * 
+    scale(year) + 
+    (1|dataset/plotID) + 
+    (1|species), 
+  data = data_fil_biome6, 
+  control = lmerControl(optimizer = "bobyqa"),
+  na.action = "na.exclude"
+)
+summary(mod_lmm_int_biome6)
 
-# biome 5 ----
-# Temperate Conifer Forests Forest
-data_fil_biome5 <- readRDS(here::here("data/inputs/data_fil_biome5.rds"))
+### Plot self-thinning line ----------------------------------------------------
+gg_stl_int_biome6 <- plot_stl_bybiome(
+  data_fil_biome6, 
+  mod_lmm_int_biome6, 
+  name = "Tropical Moist Broadleaf Forests", 
+  years = c(1985, 2000, 2015)
+)
 
-Fit_Year = lmer(logDensity ~ scale(logQMD) * scale(year) + (1|dataset/plotID) + (1|species), 
-                data = data_fil_biome5, na.action = "na.exclude")
-summary(Fit_Year)
-r.squaredGLMM(Fit_Year)
-plot(allEffects(Fit_Year))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, terms = c("logQMD","year"))
-out <- summary(Fit_Year)
-years <- as.integer(summary(data_fil_biome5$year))
-caption <- out$coefficients |>
-  as_tibble() |>
-  mutate(Estimate = round(Estimate,3),
-         pvalue = signif(`Pr(>|t|)`,digits=3),
-         pvalue=ifelse(pvalue<0.001,"<0.001 ***",round(pvalue,3)))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
-           terms = c("logQMD", "year[1985,2000,2015]")) + theme_classic() 
+## Biome 12: Mediterranean Forests  --------------------------------------------
+### Fit model ------------------------------------------------------------------
+mod_lmm_int_biome12 = lmer(
+  logDensity ~ scale(logQMD) * 
+    scale(year) + 
+    (1|dataset/plotID) + 
+    (1|species), 
+  data = data_fil_biome12, 
+  na.action = "na.exclude"
+)
+summary(mod_lmm_int_biome12)
 
-fig_qmd5 <- plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
-                       terms = c("year","logQMD[2,3,4]")) + theme_classic() + ggtitle("Temperate Conifer Forests")
-fig_qmd5
+### Plot self-thinning line ----------------------------------------------------
+gg_stl_int_biome12 <- plot_stl_bybiome(
+  data_fil_biome12, 
+  mod_lmm_int_biome12, 
+  name = "Tropical Moist Broadleaf Forests", 
+  years = c(1985, 2000, 2015)
+)
 
-pred <- ggpredict(Fit_Year, terms = c("logQMD","year[1985,2000,2015]]"), full.data = TRUE)
-plot(pred, add.data = F) 
-preddata <- as.data.frame(pred)
+# Publication Figure 1 ---------------------------------------------------------
 
-fig1_int5 <- ggplot() + 
-  geom_point(data = data_fil_biome5, aes(x = logQMD, y = logDensity), alpha=0.5, size = 1,col="darkgrey", shape = 16, inherit.aes = FALSE) + 
-  geom_ribbon(data = preddata, aes(x = x, y = predicted,ymin=conf.low,ymax=conf.high,fill=group),alpha=.2,show.legend=T) + 
-  geom_smooth(data= preddata, aes(x=x, y=predicted, color=group), method = "lm",fullrange = F,size = .6, se=F) +
-  labs(x = "ln QMD", y = "ln N",title = "Temperate Conifer Forests",color  = "Year") +
-  annotate("text", x = 4.5, y = 9.2, 
-           label = paste0("n = ",dim(data_fil_biome5)[1], '\n', 
-                          "p-value[year] = ", caption$pvalue[3], '\n', 
-                          "p-value[int] = ", caption$pvalue[4]),
-           size = 3, hjust = 1, vjust = 1) +
-  scale_color_manual("Year", #expression(paste(italic("Year"))), 
-                     breaks = c("1985","2000", "2015"), 
-                     values = c("#21918c", "#fde725", "#440154")) +
-  scale_fill_manual("Year", #expression(paste(italic("Year"))), 
-                    breaks = c("1985","2000", "2015"), 
-                    values = c("#21918c", "#fde725", "#440154")) +
-  theme_classic() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                          axis.text = element_text(size = 12),axis.title = element_text(size = 12),
-                          legend.text = element_text(size = 10),legend.title = element_text(size = 10),
-                          plot.title = element_text(size = 12),
-                          legend.key = element_rect(fill = NA, color = NA),
-                          legend.position = "bottom",
-                          plot.caption = element_text(vjust = 0.1)) +
-  scale_x_continuous(limits = c(2,4.5),breaks = seq(2,4,1)) +
-  scale_y_continuous(limits = c(2.9,9.3),breaks = seq(4,8,2))
-fig1_int5
+fig1 <- 
+  gg_stl_int_biome1 + 
+  gg_stl_int_biome4 + 
+  gg_stl_int_biome5 + 
+  gg_stl_int_biome6 + 
+  gg_stl_int_biome12 +
+  guide_area() +
+  plot_layout(ncol = 3, guides = "collect") +
+  plot_annotation(tag_levels = "a",tag_suffix = ")")
 
-# biome 6 ----
-# Boreal Forests/Taiga Forest
-data_fil_biome6 <- readRDS(here::here("data/inputs/data_fil_biome6.rds"))
-
-Fit_Year = lmer(logDensity ~ scale(logQMD) * scale(year) + (1|dataset/plotID) + (1|species), 
-                data = data_fil_biome6, na.action = "na.exclude",
-                control = lmerControl(optimizer = "bobyqa"))
-summary(Fit_Year)
-r.squaredGLMM(Fit_Year)
-plot(allEffects(Fit_Year))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, terms = c("logQMD","year"))
-out <- summary(Fit_Year)
-years <- as.integer(summary(data_fil_biome6$year))
-caption <- out$coefficients |>
-  as_tibble() |>
-  mutate(Estimate = round(Estimate,3),
-         pvalue = signif(`Pr(>|t|)`,digits=3),
-         pvalue=ifelse(pvalue<0.001,"<0.001 ***",round(pvalue,3)))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
-           terms = c("logQMD", "year[1985,2000,2015]")) + theme_classic() 
-
-fig_qmd6 <- plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
-                       terms = c("year","logQMD[2,3,4]")) + theme_classic() + ggtitle("Boreal Forests")
-fig_qmd6
-
-pred <- ggpredict(Fit_Year, terms = c("logQMD","year[1985,2000,2015]]"), full.data = TRUE)
-plot(pred, add.data = F) 
-preddata <- as.data.frame(pred)
-
-fig1_int6 <- ggplot() + 
-  geom_point(data = data_fil_biome6, aes(x = logQMD, y = logDensity), alpha=0.5, size = 1,col="darkgrey", shape = 16, inherit.aes = FALSE) + 
-  geom_ribbon(data = preddata, aes(x = x, y = predicted,ymin=conf.low,ymax=conf.high,fill=group),alpha=.2,show.legend=T) + 
-  geom_smooth(data= preddata, aes(x=x, y=predicted, color=group), method = "lm",fullrange = F,size = .6, se=F) +
-  labs(x = "ln QMD", y = "ln N",title = "Boreal Forests",color  = "Year") +
-  annotate("text", x = 4.5, y = 9.2,
-           label = paste0("n = ",dim(data_fil_biome6)[1], '\n', 
-                          "p-value[year] = ", caption$pvalue[3], '\n', 
-                          "p-value[int] = ", caption$pvalue[4]),
-           size = 3, hjust = 1, vjust = 1) +
-  scale_color_manual("Year", #expression(paste(italic("Year"))), 
-                     breaks = c("1985","2000", "2015"), 
-                     values = c("#21918c", "#fde725", "#440154")) +
-  scale_fill_manual("Year", #expression(paste(italic("Year"))), 
-                    breaks = c("1985","2000", "2015"), 
-                    values = c("#21918c", "#fde725", "#440154")) +
-  theme_classic() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                          axis.text = element_text(size = 12),axis.title = element_text(size = 12),
-                          legend.text = element_text(size = 10),legend.title = element_text(size = 10),
-                          plot.title = element_text(size = 12),
-                          legend.key = element_rect(fill = NA, color = NA),
-                          legend.position = "bottom",
-                          plot.caption = element_text(vjust = 0.1)) +
-  scale_x_continuous(limits = c(2,4.5),breaks = seq(2,4,1)) +
-  scale_y_continuous(limits = c(2.9,9.3),breaks = seq(4,8,2))
-fig1_int6
-
-# biome 12 ----
-# Mediterranean Forests
-data_fil_biome12 <- readRDS(here::here("data/inputs/data_fil_biome12.rds"))
-
-Fit_Year = lmer(logDensity ~ scale(logQMD) * scale(year) + (1|plotID) + (1|species), 
-                data = data_fil_biome12, na.action = "na.exclude")
-summary(Fit_Year)
-r.squaredGLMM(Fit_Year)
-plot(allEffects(Fit_Year))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, terms = c("logQMD","year"))
-out <- summary(Fit_Year)
-years <- as.integer(summary(data_fil_biome12$year))
-caption <- out$coefficients |>
-  as_tibble() |>
-  mutate(Estimate = round(Estimate,3),
-         pvalue = signif(`Pr(>|t|)`,digits=3),
-         pvalue=ifelse(pvalue<0.001,"<0.001 ***",round(pvalue,3)))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
-           terms = c("logQMD", "year[1985,2000,2015]")) + theme_classic()
-
-fig_qmd12 <- plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
-                        terms = c("year","logQMD[2,3,4]")) + theme_classic() + ggtitle("Mediterranean Forests")
-fig_qmd12
-
-pred <- ggpredict(Fit_Year, terms = c("logQMD","year[1985,2000,2015]]"), full.data = TRUE)
-plot(pred, add.data = F) 
-preddata <- as.data.frame(pred)
-
-fig1_int12 <- ggplot() + 
-  geom_point(data = data_fil_biome12, aes(x = logQMD, y = logDensity), alpha=0.5, size = 1,col="darkgrey", shape = 16, inherit.aes = FALSE) + 
-  geom_ribbon(data = preddata, aes(x = x, y = predicted,ymin=conf.low,ymax=conf.high,fill=group),alpha=.2,show.legend=T) + 
-  geom_smooth(data= preddata, aes(x=x, y=predicted, color=group), method = "lm",fullrange = F,size = .6, se=F) +
-  labs(x = "ln QMD", y = "ln N",title = "Mediterranean Forests",color  = "Year") +
-  annotate("text", x = 4.5, y = 9.2, 
-           label = paste0("n = ",dim(data_fil_biome12)[1], '\n', 
-                          "p-value[year] = ", caption$pvalue[3], '\n', 
-                          "p-value[int] = ", caption$pvalue[4]),
-           size = 3, hjust = 1, vjust = 1) +
-  scale_color_manual("Year", #expression(paste(italic("Year"))), 
-                     breaks = c("1985","2000", "2015"), 
-                     values = c("#21918c", "#fde725", "#440154")) +
-  scale_fill_manual("Year", #expression(paste(italic("Year"))), 
-                    breaks = c("1985","2000", "2015"), 
-                    values = c("#21918c", "#fde725", "#440154")) +
-  theme_classic() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                          axis.text = element_text(size = 12),axis.title = element_text(size = 12),
-                          legend.text = element_text(size = 10),legend.title = element_text(size = 10),
-                          plot.title = element_text(size = 12),
-                          legend.key = element_rect(fill = NA, color = NA),
-                          legend.position = "bottom",
-                          plot.caption = element_text(vjust = 0.1)) +
-  scale_x_continuous(limits = c(2,4.5),breaks = seq(2,4,1)) +
-  scale_y_continuous(limits = c(2.9,9.3),breaks = seq(4,8,2))
-fig1_int12
-
-# Figure 1 ----
-fig1int <- fig1_int1 + fig1_int4 + fig1_int5 + fig1_int6 + fig1_int12 + plot_layout(ncol = 3, guides = "collect") & 
-  theme(legend.position = 'bottom') + plot_annotation(tag_levels = "a",tag_suffix = ")")
-fig1int
-
-ggsave(paste0(here::here(), "/manuscript/figures/fig1_int.png"), width = 11, height = 7.5, dpi=300)
+ggsave(
+  filename = here::here("manuscript/figures/fig1int.png"),
+  plot = fig1,
+  width = 11, 
+  height = 7.5
+)
 
 # Quantile regression ----------------------------------------------------------
 data_unm <- readRDS(here::here("data/data_unm.rds"))

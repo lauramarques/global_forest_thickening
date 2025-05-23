@@ -82,7 +82,11 @@ gg_stl_biome1 <- plot_stl_bybiome(
 gg_hist_year_biome1 <- ggplot(data_fil_biome1, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
   theme_classic() +
-  labs(x = "Year", y = "Number of invenories")
+  labs(
+    title = bquote(bold("a") ~~ "Tropical Moist Broadleaf Forests"),
+    x = "Year", 
+    y = "Number of invenories"
+    )
 
 gg_hist_year_biome1
 
@@ -170,7 +174,11 @@ gg_stl_biome4 <- plot_stl_bybiome(
 gg_hist_year_biome4 <- ggplot(data_fil_biome4, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
   theme_classic() +
-  labs(x = "Year", y = "Number of invenories")
+  labs(
+    title = bquote(bold("b") ~~ "Temperate Broadleaf & Mixed Forests"), 
+    x = "Year", 
+    y = "Number of invenories"
+    )
 
 gg_hist_year_biome4
 
@@ -256,7 +264,11 @@ gg_stl_biome5 <- plot_stl_bybiome(
 gg_hist_year_biome5 <- ggplot(data_fil_biome5, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
   theme_classic() +
-  labs(x = "Year", y = "Number of invenories")
+  labs(
+    title = bquote(bold("c") ~~ "Temperate Conifer Forests Forest"), 
+    x = "Year", 
+    y = "Number of invenories"
+    )
 
 gg_hist_year_biome5
 
@@ -341,7 +353,11 @@ gg_stl_biome6 <- plot_stl_bybiome(
 gg_hist_year_biome6 <- ggplot(data_fil_biome6, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
   theme_classic() +
-  labs(x = "Year", y = "Number of invenories")
+  labs(
+    title = bquote(bold("c") ~~ "Boreal Forests/Taiga Forest"), 
+    x = "Year", 
+    y = "Number of invenories"
+    )
 
 gg_hist_year_biome6
 
@@ -427,7 +443,11 @@ gg_stl_biome12 <- plot_stl_bybiome(
 gg_hist_year_biome12 <- ggplot(data_fil_biome12, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
   theme_classic() +
-  labs(x = "Year", y = "Number of invenories")
+  labs(
+    title = bquote(bold("d") ~~ "Mediterranean Forests"), 
+    x = "Year", 
+    y = "Number of invenories"
+    )
 
 gg_hist_year_biome12
 
@@ -486,35 +506,6 @@ change_n
 # years
 # 
 
-# Publication Figure 1 ---------------------------------------------------------
-legend <- get_legend(
-  gg_stl_biome1 + 
-    theme(legend.position = "right")
-  )
-
-fig1 <- cowplot::plot_grid(
-  gg_stl_biome1, 
-  gg_stl_biome4, 
-  gg_stl_biome5, 
-  gg_stl_biome6, 
-  gg_stl_biome12,
-  legend,
-  ncol = 3
-)
-
-ggsave(
-  filename = here::here("manuscript/figures/fig1.pdf"),
-  plot = fig1,
-  width = 11, 
-  height = 7.5
-)
-
-ggsave(
-  filename = here::here("manuscript/figures/fig1.png"),
-  plot = fig1,
-  width = 11, 
-  height = 7.5
-)
 
 # # Special case of BCI ----------------------------------------------------------
 # 
@@ -1106,3 +1097,50 @@ df_lqmm_byqmdbin |>
   geom_hline(yintercept = 0, linetype = "dotted") +
   labs(x = expression(log(QMD)))
 
+# Publication figures ----------------------------------------------------------
+## Figure 1 --------------------------------------------------------------------
+legend <- get_legend(
+  gg_stl_biome1 + 
+    theme(legend.position = "right")
+)
+
+fig1 <- cowplot::plot_grid(
+  gg_stl_biome1, 
+  gg_stl_biome4, 
+  gg_stl_biome5, 
+  gg_stl_biome6, 
+  gg_stl_biome12,
+  legend,
+  ncol = 3
+)
+
+ggsave(
+  filename = here::here("manuscript/figures/fig1.pdf"),
+  plot = fig1,
+  width = 11, 
+  height = 7.5
+)
+
+ggsave(
+  filename = here::here("manuscript/figures/fig1.png"),
+  plot = fig1,
+  width = 11, 
+  height = 7.5
+)
+
+## SI Figure histogram----------------------------------------------------------
+fig_hist_year <- cowplot::plot_grid(
+  gg_hist_year_biome1, 
+  gg_hist_year_biome4, 
+  gg_hist_year_biome5, 
+  gg_hist_year_biome6, 
+  gg_hist_year_biome12,
+  ncol = 3
+)
+
+ggsave(
+  filename = here::here("manuscript/figures/fig_hist_year.pdf"),
+  plot = fig_hist_year,
+  width = 11, 
+  height = 6
+)

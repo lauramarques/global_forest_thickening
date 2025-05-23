@@ -14,7 +14,7 @@ plot_stl_bybiome <- function(df, mod, name, years = c(1985, 2000, 2015), plot_le
     as_tibble() |>
     rename(estimate = V1, pvalue = V2) |>
     mutate(estimate = round(estimate, 3),
-           pvalue = ifelse(pvalue < 0.001, "< 0.001 ***", paste0("p = ", signif(pvalue, 3)))
+           pvalue = ifelse(pvalue < 0.001, "< 0.001 ***", paste0(round(pvalue, 3)))
            )
   
   # panel for final plot
@@ -48,7 +48,7 @@ plot_stl_bybiome <- function(df, mod, name, years = c(1985, 2000, 2015), plot_le
       title = name,
       subtitle = bquote(
         italic(n) == .(as.character(nobs(mod))) ~ ~ ~
-        italic(p)(Year) ~ .(caption$pvalue[1])
+        italic(p)[year] == .(caption$pvalue[1])
         ),
       color  = "Year"
     ) +

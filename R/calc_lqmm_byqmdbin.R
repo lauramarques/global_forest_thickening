@@ -1,14 +1,16 @@
-calc_lqmm_byqmdbin <- function(df){
+calc_lqmm_byqmdbin <- function(df, breaks = NA){
   
   # make sure at least 300 points are on average in each bin
-  nbins <- max(round(length(df$logQMD[!is.na(df$logQMD)]) / 300), 10)
-  bin_edges <- pretty(df$logQMD, n = nbins)
-  bin_labels <- bin_edges[1:length(bin_edges)-1] + (bin_edges[2] - bin_edges[1])/2
+  nbins <- min(round(length(df$logQMD[!is.na(df$logQMD)]) / 300), 10)
+  if (identical(breaks, NA)){
+    breaks <- pretty(df$logQMD, n = nbins)
+  }
+  bin_labels <- breaks[1:length(breaks)-1] + (breaks[2] - breaks[1])/2
   
-  df |> 
+  df <- df |> 
     mutate(bin_lqmm = cut(
       logQMD, 
-      breaks = bin_edges, 
+      breaks = breaks, 
       length.out = nbins + 1, 
       include.lowest = TRUE,
       labels = bin_labels
@@ -51,6 +53,7 @@ calc_lqmm_byqmdbin <- function(df){
     )) |> 
     mutate(upwardshift = ifelse(coef_year > 0 & pval < 0.01, TRUE, FALSE))
   
+  return(list(df = df, breaks = breaks))
 }
 
 get_pval <- function(sum){

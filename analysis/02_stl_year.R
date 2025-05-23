@@ -813,15 +813,17 @@ gg_lqmm_biome1 <- plot_lqmm_bybiome(
   data_unm_biome,
   fit_lqmm, 
   name = bquote(bold("a") ~~ "Tropical Moist Broadleaf Forests")
-  ) + 
-  scale_x_continuous(limits = c(2.4, 3.6))
+  )
 
 ### Within QMD bins ----------------------------------------
 # Test whether upward shift of 90% quantile is significant within logQMD-bins
 # returns data frame with pval indicating significance level of a positive
 # effect of year.
 df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
-df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(data_unm_biome_including_disturbed)
+df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(
+  data_unm_biome_including_disturbed,
+  breaks = df_lqmm_byqmdbin$breaks
+  )
 
 # Build the plot to access internal structure
 gg_lqmm_biome1_byqmdbin <- ggplot() +
@@ -829,7 +831,7 @@ gg_lqmm_biome1_byqmdbin <- ggplot() +
     aes(
       as.numeric(as.character(bin_lqmm)), 
       coef_year), 
-    data = df_lqmm_byqmdbin_including_disturbed,
+    data = df_lqmm_byqmdbin_including_disturbed$df,
     size = 1.5,
     color = "grey"
   ) +  
@@ -840,7 +842,7 @@ gg_lqmm_biome1_byqmdbin <- ggplot() +
       ymin = coef_year_lower, 
       ymax = coef_year_upper
       ), 
-    data = df_lqmm_byqmdbin_including_disturbed,
+    data = df_lqmm_byqmdbin_including_disturbed$df,
     width = 0,
     color = "grey"
     ) +
@@ -848,7 +850,7 @@ gg_lqmm_biome1_byqmdbin <- ggplot() +
     aes(
       as.numeric(as.character(bin_lqmm)), 
       coef_year), 
-    data = df_lqmm_byqmdbin,
+    data = df_lqmm_byqmdbin$df,
     size = 1.5
     ) +
   geom_errorbar(
@@ -858,7 +860,7 @@ gg_lqmm_biome1_byqmdbin <- ggplot() +
       ymin = coef_year_lower, 
       ymax = coef_year_upper
       ), 
-    data = df_lqmm_byqmdbin,
+    data = df_lqmm_byqmdbin$df,
     width = 0
     ) +
   theme_classic() +
@@ -866,9 +868,9 @@ gg_lqmm_biome1_byqmdbin <- ggplot() +
   labs(
     x = expression(ln(QMD)),
     y = expression(italic(beta)(year))
-  ) + 
-  scale_x_continuous(limits = c(2.4, 3.6))
-
+  ) +
+  scale_x_continuous(limits = c(2.4, 4.5))
+  
 gg_lqmm_biome1_both <- cowplot::plot_grid(
   gg_lqmm_biome1,
   gg_lqmm_biome1_byqmdbin,
@@ -949,15 +951,17 @@ gg_lqmm_biome4 <- plot_lqmm_bybiome(
   data_unm_biome,
   fit_lqmm, 
   name = bquote(bold("b") ~~ "Temperate Broadleaf & Mixed Forests")
-) + 
-  scale_x_continuous(limits = c(2.4, 4.5))
+)
 
 ### Within QMD bins ----------------------------------------
 # Test whether upward shift of 90% quantile is significant within logQMD-bins
 # returns data frame with pval indicating significance level of a positive
 # effect of year.
 df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
-df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(data_unm_biome_including_disturbed)
+df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(
+  data_unm_biome_including_disturbed,
+  breaks = df_lqmm_byqmdbin$breaks
+  )
 
 # Build the plot to access internal structure
 gg_lqmm_biome4_byqmdbin <- ggplot() +
@@ -965,7 +969,7 @@ gg_lqmm_biome4_byqmdbin <- ggplot() +
     aes(
       as.numeric(as.character(bin_lqmm)), 
       coef_year), 
-    data = df_lqmm_byqmdbin_including_disturbed,
+    data = df_lqmm_byqmdbin_including_disturbed$df,
     size = 1.5,
     color = "grey"
   ) +  
@@ -976,7 +980,7 @@ gg_lqmm_biome4_byqmdbin <- ggplot() +
       ymin = coef_year_lower, 
       ymax = coef_year_upper
       ), 
-    data = df_lqmm_byqmdbin,
+    data = df_lqmm_byqmdbin_including_disturbed$df,
     width = 0,
     color = "grey"
     ) +
@@ -984,7 +988,7 @@ gg_lqmm_biome4_byqmdbin <- ggplot() +
     aes(
       as.numeric(as.character(bin_lqmm)), 
       coef_year), 
-    data = df_lqmm_byqmdbin,
+    data = df_lqmm_byqmdbin$df,
     size = 1.5
     ) +
   geom_errorbar(
@@ -994,7 +998,7 @@ gg_lqmm_biome4_byqmdbin <- ggplot() +
       ymin = coef_year_lower, 
       ymax = coef_year_upper
       ), 
-    data = df_lqmm_byqmdbin,
+    data = df_lqmm_byqmdbin$df,
     width = 0
     ) +
   theme_classic() +
@@ -1002,8 +1006,8 @@ gg_lqmm_biome4_byqmdbin <- ggplot() +
   labs(
     x = expression(ln(QMD)),
     y = expression(italic(beta)(year))
-  ) + 
-  scale_x_continuous(limits = c(2.4, 4.5)) + 
+  ) +
+  scale_x_continuous(limits = c(2.4, 4.5)) +
   scale_y_continuous(limits = c(-0.02, 0.04))
 
 gg_lqmm_biome4_both <- cowplot::plot_grid(
@@ -1011,7 +1015,9 @@ gg_lqmm_biome4_both <- cowplot::plot_grid(
   gg_lqmm_biome4_byqmdbin,
   ncol = 1,
   rel_heights = c(1, 0.4),
-  align = "v"
+  labels = c("",  "e"),
+  align = "v",
+  label_y = 1.1
 )
 
 ## Biome 5  Temperate Conifer Forests Forest -----------------------------------
@@ -1079,15 +1085,17 @@ fit_lqmm <- lqmm(
 gg_lqmm_biome5 <- plot_lqmm_bybiome(
   data_unm_biome,
   fit_lqmm, 
-  name = bquote(bold("c") ~~ "Temperate Conifer Forests Forest")) + 
-  scale_x_continuous(limits = c(2.4, 4.5))
+  name = bquote(bold("c") ~~ "Temperate Conifer Forests Forest"))
   
 ### Within QMD bins ----------------------------------------
 # Test whether upward shift of 90% quantile is significant within logQMD-bins
 # returns data frame with pval indicating significance level of a positive
 # effect of year.
 df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
-df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(data_unm_biome_including_disturbed)
+df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(
+  data_unm_biome_including_disturbed,
+  breaks = df_lqmm_byqmdbin$breaks
+  )
 
 # Build the plot to access internal structure
 gg_lqmm_biome5_byqmdbin <- ggplot() +
@@ -1095,7 +1103,7 @@ gg_lqmm_biome5_byqmdbin <- ggplot() +
     aes(
       as.numeric(as.character(bin_lqmm)), 
       coef_year), 
-    data = df_lqmm_byqmdbin_including_disturbed,
+    data = df_lqmm_byqmdbin_including_disturbed$df,
     size = 1.5,
     color = "grey"
   ) +  
@@ -1106,7 +1114,7 @@ gg_lqmm_biome5_byqmdbin <- ggplot() +
       ymin = coef_year_lower, 
       ymax = coef_year_upper
       ), 
-    data = df_lqmm_byqmdbin_including_disturbed,
+    data = df_lqmm_byqmdbin_including_disturbed$df,
     width = 0,
     color = "grey"
     ) +
@@ -1114,7 +1122,7 @@ gg_lqmm_biome5_byqmdbin <- ggplot() +
     aes(
       as.numeric(as.character(bin_lqmm)), 
       coef_year), 
-    data = df_lqmm_byqmdbin,
+    data = df_lqmm_byqmdbin$df,
     size = 1.5
     ) +
   geom_errorbar(
@@ -1124,7 +1132,7 @@ gg_lqmm_biome5_byqmdbin <- ggplot() +
       ymin = coef_year_lower, 
       ymax = coef_year_upper
       ), 
-    data = df_lqmm_byqmdbin,
+    data = df_lqmm_byqmdbin$df,
     width = 0
     ) +
   theme_classic() +
@@ -1132,15 +1140,17 @@ gg_lqmm_biome5_byqmdbin <- ggplot() +
   labs(
     x = expression(ln(QMD)),
     y = expression(italic(beta)(year))
-  ) + 
+  ) +
   scale_x_continuous(limits = c(2.4, 4.5))
-
+  
 gg_lqmm_biome5_both <- cowplot::plot_grid(
   gg_lqmm_biome5,
   gg_lqmm_biome5_byqmdbin,
   ncol = 1,
   rel_heights = c(1, 0.4),
-  align = "v"
+  labels = c("",  "f"),
+  align = "v",
+  label_y = 1.1
 )
 
 ## Biome 6 Boreal Forests/Taiga Forest ----------------------
@@ -1208,16 +1218,18 @@ fit_lqmm <- lqmm(
 gg_lqmm_biome6 <- plot_lqmm_bybiome(
   data_unm_biome,
   fit_lqmm, 
-  name = bquote(bold("d") ~~ "Boreal Forests/Taiga Forest")
-) + 
-  scale_x_continuous(limits = c(2.4, 3.6))
+  name = bquote(bold("g") ~~ "Boreal Forests/Taiga Forest")
+)
 
 ### Within QMD bins ----------------------------------------
 # Test whether upward shift of 90% quantile is significant within logQMD-bins
 # returns data frame with pval indicating significance level of a positive
 # effect of year.
 df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
-df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(data_unm_biome_including_disturbed)
+df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(
+  data_unm_biome_including_disturbed,
+  breaks = df_lqmm_byqmdbin$breaks
+  )
 
 # Build the plot to access internal structure
 gg_lqmm_biome6_byqmdbin <- ggplot() +
@@ -1225,7 +1237,7 @@ gg_lqmm_biome6_byqmdbin <- ggplot() +
     aes(
       as.numeric(as.character(bin_lqmm)), 
       coef_year), 
-    data = df_lqmm_byqmdbin_including_disturbed,
+    data = df_lqmm_byqmdbin_including_disturbed$df,
     size = 1.5,
     color = "grey"
   ) +  
@@ -1236,7 +1248,7 @@ gg_lqmm_biome6_byqmdbin <- ggplot() +
       ymin = coef_year_lower, 
       ymax = coef_year_upper
       ), 
-    data = df_lqmm_byqmdbin_including_disturbed,
+    data = df_lqmm_byqmdbin_including_disturbed$df,
     width = 0,
     color = "grey"
     ) +
@@ -1244,7 +1256,7 @@ gg_lqmm_biome6_byqmdbin <- ggplot() +
     aes(
       as.numeric(as.character(bin_lqmm)), 
       coef_year), 
-    data = df_lqmm_byqmdbin,
+    data = df_lqmm_byqmdbin$df,
     size = 1.5
     ) +
   geom_errorbar(
@@ -1254,7 +1266,7 @@ gg_lqmm_biome6_byqmdbin <- ggplot() +
       ymin = coef_year_lower, 
       ymax = coef_year_upper
       ), 
-    data = df_lqmm_byqmdbin,
+    data = df_lqmm_byqmdbin$df,
     width = 0
     ) +
   theme_classic() +
@@ -1262,15 +1274,17 @@ gg_lqmm_biome6_byqmdbin <- ggplot() +
   labs(
     x = expression(ln(QMD)),
     y = expression(italic(beta)(year))
-  ) + 
-  cale_x_continuous(limits = c(2.4, 3.6))
-
+  ) +
+  scale_x_continuous(limits = c(2.4, 4.5))
+  
 gg_lqmm_biome6_both <- cowplot::plot_grid(
   gg_lqmm_biome6,
   gg_lqmm_biome6_byqmdbin,
   ncol = 1,
   rel_heights = c(1, 0.4),
-  align = "v"
+  labels = c("",  "i"),
+  align = "v",
+  label_y = 1.1
 )
 
 ## Biome 12 Mediterranean Forests ----------------------
@@ -1338,16 +1352,18 @@ fit_lqmm <- lqmm(
 gg_lqmm_biome12 <- plot_lqmm_bybiome(
   data_unm_biome,
   fit_lqmm, 
-  name = bquote(bold("e") ~~ "Mediterranean Forests")
-) + 
-  scale_x_continuous(limits = c(2.4, 5))
+  name = bquote(bold("h") ~~ "Mediterranean Forests")
+)
 
 ### Within QMD bins ----------------------------------------
 # Test whether upward shift of 90% quantile is significant within logQMD-bins
 # returns data frame with pval indicating significance level of a positive
 # effect of year.
 df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
-df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(data_unm_biome_including_disturbed)
+df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(
+  data_unm_biome_including_disturbed,
+  breaks = df_lqmm_byqmdbin$breaks
+  )
 
 # Build the plot to access internal structure
 gg_lqmm_biome12_byqmdbin <- ggplot() +
@@ -1355,7 +1371,7 @@ gg_lqmm_biome12_byqmdbin <- ggplot() +
     aes(
       as.numeric(as.character(bin_lqmm)), 
       coef_year), 
-    data = df_lqmm_byqmdbin_including_disturbed,
+    data = df_lqmm_byqmdbin_including_disturbed$df,
     size = 1.5,
     color = "grey"
   ) +  
@@ -1366,7 +1382,7 @@ gg_lqmm_biome12_byqmdbin <- ggplot() +
       ymin = coef_year_lower, 
       ymax = coef_year_upper
       ), 
-    data = df_lqmm_byqmdbin_including_disturbed,
+    data = df_lqmm_byqmdbin_including_disturbed$df,
     width = 0,
     color = "grey"
     ) +
@@ -1374,7 +1390,7 @@ gg_lqmm_biome12_byqmdbin <- ggplot() +
     aes(
       as.numeric(as.character(bin_lqmm)), 
       coef_year), 
-    data = df_lqmm_byqmdbin,
+    data = df_lqmm_byqmdbin$df,
     size = 1.5
     ) +
   geom_errorbar(
@@ -1384,7 +1400,7 @@ gg_lqmm_biome12_byqmdbin <- ggplot() +
       ymin = coef_year_lower, 
       ymax = coef_year_upper
       ), 
-    data = df_lqmm_byqmdbin,
+    data = df_lqmm_byqmdbin$df,
     width = 0
     ) +
   theme_classic() +
@@ -1392,15 +1408,17 @@ gg_lqmm_biome12_byqmdbin <- ggplot() +
   labs(
     x = expression(ln(QMD)),
     y = expression(italic(beta)(year))
-  ) + 
-  scale_x_continuous(limits = c(2.4, 5))
-
+  ) +
+  scale_x_continuous(limits = c(2.4, 4.5))
+  
 gg_lqmm_biome12_both <- cowplot::plot_grid(
   gg_lqmm_biome12,
   gg_lqmm_biome12_byqmdbin,
   ncol = 1,
   rel_heights = c(1, 0.4),
-  align = "v"
+  labels = c("",  "j"),
+  align = "v",
+  label_y = 1.1
 )
 
 # Publication figures ----------------------------------------------------------
@@ -1468,7 +1486,7 @@ ggsave(
 
 ### Quantile regression ----------------------------------------------------------
 legend <- get_legend(
-  gg_lqmm_biome1_both + 
+  gg_lqmm_biome1 + 
     theme(legend.position = "right")
 )
 

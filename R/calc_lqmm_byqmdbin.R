@@ -1,8 +1,8 @@
 calc_lqmm_byqmdbin <- function(df){
   
+  # make sure at least 300 points are on average in each bin
   nbins <- max(round(length(df$logQMD[!is.na(df$logQMD)]) / 300), 10)
-  use_range <- range(df$logQMD)
-  bin_edges <- seq(use_range[1], use_range[2], length.out = nbins + 1)
+  bin_edges <- pretty(df$logQMD, n = nbins)
   bin_labels <- bin_edges[1:length(bin_edges)-1] + (bin_edges[2] - bin_edges[1])/2
   
   df |> 

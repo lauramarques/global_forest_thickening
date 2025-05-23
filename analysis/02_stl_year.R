@@ -750,7 +750,7 @@ data_unm <- readRDS(here::here("data/data_unm.rds"))
 data_unm_biome <- data_unm |> 
   filter(biomeID == 1)
 
-# identify disturbed plots
+### Identify disturbed plots ---------------------------------------------------
 data_unm_biome <- data_unm_biome |> 
   identify_disturbed_plots()
 
@@ -768,19 +768,26 @@ df_disturbed <- data_unm_biome |>
     nplots = length(unique(plotID)),
     ndisturbed = sum(disturbed, na.rm = TRUE)
   ) |> 
-  mutate(fdisturbed = ndisturbed / nplots)
+  mutate(fdisturbed = ndisturbed / nplots) |> 
+  mutate(fdisturbed_logit = log(fdisturbed / (1 - fdisturbed)))
 
-# plot fraction of disturbed over time
-df_disturbed |> 
-  ggplot(aes(as.numeric(as.character(year_bin)), car::logit(fdisturbed))) +
+### Plot disturbed plots -------------------------------------------------------
+gg_fdisturbed_biome1 <- df_disturbed |> 
+  ggplot(aes(as.numeric(as.character(year_bin)), fdisturbed_logit)) +
   geom_point() +
   geom_smooth(method = "lm", color = "red") +
   theme_classic() +
-  labs(x = "Year",  y = expression(logit(fraction ~ disturbed)))
-
-ggsave(filename = ".pdf", width = 6, height = 4)
+  labs(
+    x = "Year",  
+    title = bquote(bold("a") ~~ "Tropical & Subtropical Moist Broadleaf Forests")
+  ) +
+  scale_y_continuous(
+    name = expression(logit(Fraction ~ disturbed)),
+    sec.axis = sec_axis(~ plogis(.), name = "Fraction disturbed")
+  )
 
 # remove disturbed plots
+data_unm_biome_including_disturbed <- data_unm_biome
 data_unm_biome <- data_unm_biome |> 
   filter(ndisturbed == 0)
 
@@ -788,48 +795,95 @@ data_unm_biome <- data_unm_biome |>
 data_unm_biome <- data_unm_biome |>
   group_by(plotID) |>
   mutate(var_logdensity = diff(range(logDensity))) |>
+  # ggplot(aes(var_logdensity, after_stat(count))) + geom_histogram()
   filter(var_logdensity > 0.001)
 
-data_unm_biome |> 
-  ggplot(aes(logQMD, logDensity, color = year)) +
-  geom_point() +
-  scale_color_viridis_c()
-
 # no scaling on predictors
-fit_lqmm <- lqmm(logDensity ~ logQMD + year,
-                 random = ~1,
-                 group = plotID,
-                 tau = c(0.70, 0.90),
-                 data = data_unm_biome,
-                 type = "normal"
+fit_lqmm <- lqmm(
+  logDensity ~ logQMD + year,
+  random = ~1,
+  group = plotID,
+  tau = c(0.70, 0.90),
+  data = data_unm_biome,
+  type = "normal"
 )
 
-plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Tropical & Subtropical Moist Broadleaf Forests")
+### Plot STL from LQMM ---------------------------------------------------------
+gg_lqmm_biome1 <- plot_lqmm_bybiome(
+  data_unm_biome,
+  fit_lqmm, 
+  name = bquote(bold("a") ~~ "Tropical Moist Broadleaf Forests")
+  ) + 
+  scale_x_continuous(limits = c(2.4, 3.6))
 
-### Quantile regression within QMD bins ----------------------------------------
+### Within QMD bins ----------------------------------------
 # Test whether upward shift of 90% quantile is significant within logQMD-bins
 # returns data frame with pval indicating significance level of a positive
 # effect of year.
 df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
+df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(data_unm_biome_including_disturbed)
 
-df_lqmm_byqmdbin |> 
-  ggplot(aes(coef_year)) +
-  geom_histogram(fill = "grey", color = "black", bins = 12) +
-  geom_vline(xintercept = 0.0, linetype = "dotted") +
-  theme_classic()
-
-df_lqmm_byqmdbin |> 
-  ggplot(aes(bin_lqmm, coef_year)) +
-  geom_point(size = 2) +
-  geom_errorbar(aes(ymin = coef_year_lower, ymax = coef_year_upper), width = 0) +
+# Build the plot to access internal structure
+gg_lqmm_biome1_byqmdbin <- ggplot() +
+  geom_point(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year), 
+    data = df_lqmm_byqmdbin_including_disturbed,
+    size = 1.5,
+    color = "grey"
+  ) +  
+  geom_errorbar(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year,
+      ymin = coef_year_lower, 
+      ymax = coef_year_upper
+      ), 
+    data = df_lqmm_byqmdbin_including_disturbed,
+    width = 0,
+    color = "grey"
+    ) +
+  geom_point(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year), 
+    data = df_lqmm_byqmdbin,
+    size = 1.5
+    ) +
+  geom_errorbar(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year,
+      ymin = coef_year_lower, 
+      ymax = coef_year_upper
+      ), 
+    data = df_lqmm_byqmdbin,
+    width = 0
+    ) +
   theme_classic() +
-  geom_hline(yintercept = 0, linetype = "dotted")
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  labs(
+    x = expression(ln(QMD)),
+    y = expression(italic(beta)(year))
+  ) + 
+  scale_x_continuous(limits = c(2.4, 3.6))
+
+gg_lqmm_biome1_both <- cowplot::plot_grid(
+  gg_lqmm_biome1,
+  gg_lqmm_biome1_byqmdbin,
+  ncol = 1,
+  rel_heights = c(1, 0.4),
+  align = "v",
+  labels = c("",  "d"),
+  label_y = 1.1
+)
 
 ## Biome 4 Temperate Broadleaf & Mixed Forests ---------------------------------
 data_unm_biome <- data_unm |> 
   filter(biomeID == 4)
 
-# identify disturbed plots
+### Identify disturbed plots ---------------------------------------------------
 data_unm_biome <- data_unm_biome |> 
   identify_disturbed_plots()
 
@@ -847,17 +901,26 @@ df_disturbed <- data_unm_biome |>
     nplots = length(unique(plotID)),
     ndisturbed = sum(disturbed, na.rm = TRUE)
   ) |> 
-  mutate(fdisturbed = ndisturbed / nplots)
+  mutate(fdisturbed = ndisturbed / nplots) |> 
+  mutate(fdisturbed_logit = log(fdisturbed / (1 - fdisturbed)))
 
-# plot fraction of disturbed over time
-df_disturbed |> 
-  ggplot(aes(as.numeric(as.character(year_bin)), car::logit(fdisturbed))) +
+### Plot disturbed plots -------------------------------------------------------
+gg_fdisturbed_biome4 <- df_disturbed |> 
+  ggplot(aes(as.numeric(as.character(year_bin)), fdisturbed_logit)) +
   geom_point() +
   geom_smooth(method = "lm", color = "red") +
   theme_classic() +
-  labs(x = "Year",  y = expression(logit(fraction ~ disturbed)))
+  labs(
+    x = "Year",  
+    title = bquote(bold("b") ~~ "Temperate Broadleaf & Mixed Forests")
+  ) +
+  scale_y_continuous(
+    name = expression(logit(Fraction ~ disturbed)),
+    sec.axis = sec_axis(~ plogis(.), name = "Fraction disturbed")
+  )
 
 # remove disturbed plots
+data_unm_biome_including_disturbed <- data_unm_biome
 data_unm_biome <- data_unm_biome |> 
   filter(ndisturbed == 0)
 
@@ -868,41 +931,94 @@ data_unm_biome <- data_unm_biome |>
   filter(var_logdensity > 0.001)
 
 # no scaling on predictors
-fit_lqmm <- lqmm(logDensity ~ logQMD + year,
-                 random = ~1,
-                 group = plotID,
-                 tau = c(0.70, 0.90),
-                 data = data_unm_biome,
-                 type = "normal"
+fit_lqmm <- lqmm(
+  logDensity ~ logQMD + year,
+  random = ~1,
+  group = plotID,
+  tau = c(0.70, 0.90),
+  data = data_unm_biome,
+  type = "normal",
+  control = list(
+    LP_max_iter = 1000,
+    LP_tol_ll = 5e-5
+  )
 )
 
-plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Temperate Broadleaf & Mixed Forests")
+### Plot STL from LQMM ---------------------------------------------------------
+gg_lqmm_biome4 <- plot_lqmm_bybiome(
+  data_unm_biome,
+  fit_lqmm, 
+  name = bquote(bold("b") ~~ "Temperate Broadleaf & Mixed Forests")
+) + 
+  scale_x_continuous(limits = c(2.4, 4.5))
 
-### Quantile regression within QMD bins ----------------------------------------
+### Within QMD bins ----------------------------------------
 # Test whether upward shift of 90% quantile is significant within logQMD-bins
 # returns data frame with pval indicating significance level of a positive
 # effect of year.
 df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
+df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(data_unm_biome_including_disturbed)
 
-df_lqmm_byqmdbin |> 
-  ggplot(aes(coef_year)) +
-  geom_histogram(fill = "grey", color = "black", bins = 12) +
-  geom_vline(xintercept = 0.0, linetype = "dotted") +
-  theme_classic()
-
-df_lqmm_byqmdbin |> 
-  ggplot(aes(bin_lqmm, coef_year)) +
-  geom_point(size = 2) +
-  geom_errorbar(aes(ymin = coef_year_lower, ymax = coef_year_upper), width = 0) +
+# Build the plot to access internal structure
+gg_lqmm_biome4_byqmdbin <- ggplot() +
+  geom_point(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year), 
+    data = df_lqmm_byqmdbin_including_disturbed,
+    size = 1.5,
+    color = "grey"
+  ) +  
+  geom_errorbar(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year,
+      ymin = coef_year_lower, 
+      ymax = coef_year_upper
+      ), 
+    data = df_lqmm_byqmdbin,
+    width = 0,
+    color = "grey"
+    ) +
+  geom_point(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year), 
+    data = df_lqmm_byqmdbin,
+    size = 1.5
+    ) +
+  geom_errorbar(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year,
+      ymin = coef_year_lower, 
+      ymax = coef_year_upper
+      ), 
+    data = df_lqmm_byqmdbin,
+    width = 0
+    ) +
   theme_classic() +
-  geom_hline(yintercept = 0, linetype = "dotted")
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  labs(
+    x = expression(ln(QMD)),
+    y = expression(italic(beta)(year))
+  ) + 
+  scale_x_continuous(limits = c(2.4, 4.5)) + 
+  scale_y_continuous(limits = c(-0.02, 0.04))
 
+gg_lqmm_biome4_both <- cowplot::plot_grid(
+  gg_lqmm_biome4,
+  gg_lqmm_biome4_byqmdbin,
+  ncol = 1,
+  rel_heights = c(1, 0.4),
+  align = "v"
+)
 
-## Biome 5  Temperate Conifer Forests Forest ----------------------
+## Biome 5  Temperate Conifer Forests Forest -----------------------------------
 data_unm_biome <- data_unm |> 
   filter(biomeID == 5)
 
-# identify disturbed plots
+### Identify disturbed plots ---------------------------------------------------
 data_unm_biome <- data_unm_biome |> 
   identify_disturbed_plots()
 
@@ -920,17 +1036,26 @@ df_disturbed <- data_unm_biome |>
     nplots = length(unique(plotID)),
     ndisturbed = sum(disturbed, na.rm = TRUE)
   ) |> 
-  mutate(fdisturbed = ndisturbed / nplots)
+  mutate(fdisturbed = ndisturbed / nplots) |> 
+  mutate(fdisturbed_logit = log(fdisturbed / (1 - fdisturbed)))
 
-# plot fraction of disturbed over time
-df_disturbed |> 
-  ggplot(aes(as.numeric(as.character(year_bin)), car::logit(fdisturbed))) +
+### Plot disturbed plots -------------------------------------------------------
+gg_fdisturbed_biome5 <- df_disturbed |> 
+  ggplot(aes(as.numeric(as.character(year_bin)), fdisturbed_logit)) +
   geom_point() +
   geom_smooth(method = "lm", color = "red") +
   theme_classic() +
-  labs(x = "Year",  y = expression(logit(fraction ~ disturbed)))
+  labs(
+    x = "Year",  
+    title = bquote(bold("c") ~~ "Temperate Conifer Forests Forest")
+  ) +
+  scale_y_continuous(
+    name = expression(logit(Fraction ~ disturbed)),
+    sec.axis = sec_axis(~ plogis(.), name = "Fraction disturbed")
+  )
 
 # remove disturbed plots
+data_unm_biome_including_disturbed <- data_unm_biome
 data_unm_biome <- data_unm_biome |> 
   filter(ndisturbed == 0)
 
@@ -941,41 +1066,88 @@ data_unm_biome <- data_unm_biome |>
   filter(var_logdensity > 0.001)
 
 # no scaling on predictors
-fit_lqmm <- lqmm(logDensity ~ logQMD + year,
-                 random = ~1,
-                 group = plotID,
-                 tau = c(0.70, 0.90),
-                 data = data_unm_biome,
-                 type = "normal"
+fit_lqmm <- lqmm(
+  logDensity ~ logQMD + year,
+  random = ~1,
+  group = plotID,
+  tau = c(0.70, 0.90),
+  data = data_unm_biome,
+  type = "normal"
 )
 
-plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Temperate Conifer Forests Forest")
-
-### Quantile regression within QMD bins ----------------------------------------
+### Plot STL from LQMM ---------------------------------------------------------
+gg_lqmm_biome5 <- plot_lqmm_bybiome(
+  data_unm_biome,
+  fit_lqmm, 
+  name = bquote(bold("c") ~~ "Temperate Conifer Forests Forest")) + 
+  scale_x_continuous(limits = c(2.4, 4.5))
+  
+### Within QMD bins ----------------------------------------
 # Test whether upward shift of 90% quantile is significant within logQMD-bins
 # returns data frame with pval indicating significance level of a positive
 # effect of year.
 df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
+df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(data_unm_biome_including_disturbed)
 
-df_lqmm_byqmdbin |> 
-  ggplot(aes(coef_year)) +
-  geom_histogram(fill = "grey", color = "black", bins = 12) +
-  geom_vline(xintercept = 0.0, linetype = "dotted") +
-  theme_classic()
-
-df_lqmm_byqmdbin |> 
-  ggplot(aes(bin_lqmm, coef_year)) +
-  geom_point(size = 2) +
-  geom_errorbar(aes(ymin = coef_year_lower, ymax = coef_year_upper), width = 0) +
+# Build the plot to access internal structure
+gg_lqmm_biome5_byqmdbin <- ggplot() +
+  geom_point(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year), 
+    data = df_lqmm_byqmdbin_including_disturbed,
+    size = 1.5,
+    color = "grey"
+  ) +  
+  geom_errorbar(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year,
+      ymin = coef_year_lower, 
+      ymax = coef_year_upper
+      ), 
+    data = df_lqmm_byqmdbin_including_disturbed,
+    width = 0,
+    color = "grey"
+    ) +
+  geom_point(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year), 
+    data = df_lqmm_byqmdbin,
+    size = 1.5
+    ) +
+  geom_errorbar(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year,
+      ymin = coef_year_lower, 
+      ymax = coef_year_upper
+      ), 
+    data = df_lqmm_byqmdbin,
+    width = 0
+    ) +
   theme_classic() +
-  geom_hline(yintercept = 0, linetype = "dotted")
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  labs(
+    x = expression(ln(QMD)),
+    y = expression(italic(beta)(year))
+  ) + 
+  scale_x_continuous(limits = c(2.4, 4.5))
 
+gg_lqmm_biome5_both <- cowplot::plot_grid(
+  gg_lqmm_biome5,
+  gg_lqmm_biome5_byqmdbin,
+  ncol = 1,
+  rel_heights = c(1, 0.4),
+  align = "v"
+)
 
 ## Biome 6 Boreal Forests/Taiga Forest ----------------------
 data_unm_biome <- data_unm |> 
   filter(biomeID == 6)
 
-# identify disturbed plots
+### Identify disturbed plots ---------------------------------------------------
 data_unm_biome <- data_unm_biome |> 
   identify_disturbed_plots()
 
@@ -993,17 +1165,26 @@ df_disturbed <- data_unm_biome |>
     nplots = length(unique(plotID)),
     ndisturbed = sum(disturbed, na.rm = TRUE)
   ) |> 
-  mutate(fdisturbed = ndisturbed / nplots)
+  mutate(fdisturbed = ndisturbed / nplots) |> 
+  mutate(fdisturbed_logit = log(fdisturbed / (1 - fdisturbed)))
 
-# plot fraction of disturbed over time
-df_disturbed |> 
-  ggplot(aes(as.numeric(as.character(year_bin)), car::logit(fdisturbed))) +
+### Plot disturbed plots -------------------------------------------------------
+gg_fdisturbed_biome6 <- df_disturbed |> 
+  ggplot(aes(as.numeric(as.character(year_bin)), fdisturbed_logit)) +
   geom_point() +
   geom_smooth(method = "lm", color = "red") +
   theme_classic() +
-  labs(x = "Year",  y = expression(logit(fraction ~ disturbed)))
+  labs(
+    x = "Year",  
+    title = bquote(bold("d") ~~ "Boreal Forests/Taiga Forest")
+  ) +
+  scale_y_continuous(
+    name = expression(logit(Fraction ~ disturbed)),
+    sec.axis = sec_axis(~ plogis(.), name = "Fraction disturbed")
+  )
 
 # remove disturbed plots
+data_unm_biome_including_disturbed <- data_unm_biome
 data_unm_biome <- data_unm_biome |> 
   filter(ndisturbed == 0)
 
@@ -1014,41 +1195,89 @@ data_unm_biome <- data_unm_biome |>
   filter(var_logdensity > 0.001)
 
 # no scaling on predictors
-fit_lqmm <- lqmm(logDensity ~ logQMD + year,
-                 random = ~1,
-                 group = plotID,
-                 tau = c(0.70, 0.90),
-                 data = data_unm_biome,
-                 type = "normal"
+fit_lqmm <- lqmm(
+  logDensity ~ logQMD + year,
+  random = ~1,
+  group = plotID,
+  tau = c(0.70, 0.90),
+  data = data_unm_biome,
+  type = "normal"
 )
 
-plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Boreal Forests/Taiga Forest")
+### Plot STL from LQMM ---------------------------------------------------------
+gg_lqmm_biome6 <- plot_lqmm_bybiome(
+  data_unm_biome,
+  fit_lqmm, 
+  name = bquote(bold("d") ~~ "Boreal Forests/Taiga Forest")
+) + 
+  scale_x_continuous(limits = c(2.4, 3.6))
 
-### Quantile regression within QMD bins ----------------------------------------
+### Within QMD bins ----------------------------------------
 # Test whether upward shift of 90% quantile is significant within logQMD-bins
 # returns data frame with pval indicating significance level of a positive
 # effect of year.
 df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
+df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(data_unm_biome_including_disturbed)
 
-df_lqmm_byqmdbin |> 
-  ggplot(aes(coef_year)) +
-  geom_histogram(fill = "grey", color = "black", bins = 12) +
-  geom_vline(xintercept = 0.0, linetype = "dotted") +
-  theme_classic()
-
-df_lqmm_byqmdbin |> 
-  ggplot(aes(bin_lqmm, coef_year)) +
-  geom_point(size = 2) +
-  geom_errorbar(aes(ymin = coef_year_lower, ymax = coef_year_upper), width = 0) +
+# Build the plot to access internal structure
+gg_lqmm_biome6_byqmdbin <- ggplot() +
+  geom_point(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year), 
+    data = df_lqmm_byqmdbin_including_disturbed,
+    size = 1.5,
+    color = "grey"
+  ) +  
+  geom_errorbar(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year,
+      ymin = coef_year_lower, 
+      ymax = coef_year_upper
+      ), 
+    data = df_lqmm_byqmdbin_including_disturbed,
+    width = 0,
+    color = "grey"
+    ) +
+  geom_point(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year), 
+    data = df_lqmm_byqmdbin,
+    size = 1.5
+    ) +
+  geom_errorbar(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year,
+      ymin = coef_year_lower, 
+      ymax = coef_year_upper
+      ), 
+    data = df_lqmm_byqmdbin,
+    width = 0
+    ) +
   theme_classic() +
-  geom_hline(yintercept = 0, linetype = "dotted")
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  labs(
+    x = expression(ln(QMD)),
+    y = expression(italic(beta)(year))
+  ) + 
+  cale_x_continuous(limits = c(2.4, 3.6))
 
+gg_lqmm_biome6_both <- cowplot::plot_grid(
+  gg_lqmm_biome6,
+  gg_lqmm_biome6_byqmdbin,
+  ncol = 1,
+  rel_heights = c(1, 0.4),
+  align = "v"
+)
 
 ## Biome 12 Mediterranean Forests ----------------------
 data_unm_biome <- data_unm |> 
   filter(biomeID == 12)
 
-# identify disturbed plots
+### Identify disturbed plots ---------------------------------------------------
 data_unm_biome <- data_unm_biome |> 
   identify_disturbed_plots()
 
@@ -1066,17 +1295,26 @@ df_disturbed <- data_unm_biome |>
     nplots = length(unique(plotID)),
     ndisturbed = sum(disturbed, na.rm = TRUE)
   ) |> 
-  mutate(fdisturbed = ndisturbed / nplots)
+  mutate(fdisturbed = ndisturbed / nplots) |> 
+  mutate(fdisturbed_logit = log(fdisturbed / (1 - fdisturbed)))
 
-# plot fraction of disturbed over time
-df_disturbed |> 
-  ggplot(aes(as.numeric(as.character(year_bin)), car::logit(fdisturbed))) +
+### Plot disturbed plots -------------------------------------------------------
+gg_fdisturbed_biome12 <- df_disturbed |> 
+  ggplot(aes(as.numeric(as.character(year_bin)), fdisturbed_logit)) +
   geom_point() +
   geom_smooth(method = "lm", color = "red") +
   theme_classic() +
-  labs(x = "Year",  y = expression(logit(fraction ~ disturbed)))
+  labs(
+    x = "Year",  
+    title = bquote(bold("d") ~~ "Mediterranean Forests")
+  ) +
+  scale_y_continuous(
+    name = expression(logit(Fraction ~ disturbed)),
+    sec.axis = sec_axis(~ plogis(.), name = "Fraction disturbed")
+  )
 
 # remove disturbed plots
+data_unm_biome_including_disturbed <- data_unm_biome
 data_unm_biome <- data_unm_biome |> 
   filter(ndisturbed == 0)
 
@@ -1087,35 +1325,83 @@ data_unm_biome <- data_unm_biome |>
   filter(var_logdensity > 0.001)
 
 # no scaling on predictors
-fit_lqmm <- lqmm(logDensity ~ logQMD + year,
-                 random = ~1,
-                 group = plotID,
-                 tau = c(0.70, 0.90),
-                 data = data_unm_biome,
-                 type = "normal"
+fit_lqmm <- lqmm(
+  logDensity ~ logQMD + year,
+  random = ~1,
+  group = plotID,
+  tau = c(0.70, 0.90),
+  data = data_unm_biome,
+  type = "normal"
 )
 
-plot_lqmm_bybiome(data_unm_biome, fit_lqmm, name = "Mediterranean Forests")
+### Plot STL from LQMM ---------------------------------------------------------
+gg_lqmm_biome12 <- plot_lqmm_bybiome(
+  data_unm_biome,
+  fit_lqmm, 
+  name = bquote(bold("e") ~~ "Mediterranean Forests")
+) + 
+  scale_x_continuous(limits = c(2.4, 5))
 
-### Quantile regression within QMD bins ----------------------------------------
+### Within QMD bins ----------------------------------------
 # Test whether upward shift of 90% quantile is significant within logQMD-bins
 # returns data frame with pval indicating significance level of a positive
 # effect of year.
 df_lqmm_byqmdbin <- calc_lqmm_byqmdbin(data_unm_biome)
+df_lqmm_byqmdbin_including_disturbed <- calc_lqmm_byqmdbin(data_unm_biome_including_disturbed)
 
-df_lqmm_byqmdbin |> 
-  ggplot(aes(coef_year)) +
-  geom_histogram(fill = "grey", color = "black", bins = 12) +
-  geom_vline(xintercept = 0.0, linetype = "dotted") +
-  theme_classic()
-
-df_lqmm_byqmdbin |> 
-  ggplot(aes(as.numeric(as.character(bin_lqmm)), coef_year)) +
-  geom_point(size = 2) +
-  geom_errorbar(aes(ymin = coef_year_lower, ymax = coef_year_upper), width = 0) +
+# Build the plot to access internal structure
+gg_lqmm_biome12_byqmdbin <- ggplot() +
+  geom_point(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year), 
+    data = df_lqmm_byqmdbin_including_disturbed,
+    size = 1.5,
+    color = "grey"
+  ) +  
+  geom_errorbar(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year,
+      ymin = coef_year_lower, 
+      ymax = coef_year_upper
+      ), 
+    data = df_lqmm_byqmdbin_including_disturbed,
+    width = 0,
+    color = "grey"
+    ) +
+  geom_point(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year), 
+    data = df_lqmm_byqmdbin,
+    size = 1.5
+    ) +
+  geom_errorbar(
+    aes(
+      as.numeric(as.character(bin_lqmm)), 
+      coef_year,
+      ymin = coef_year_lower, 
+      ymax = coef_year_upper
+      ), 
+    data = df_lqmm_byqmdbin,
+    width = 0
+    ) +
   theme_classic() +
   geom_hline(yintercept = 0, linetype = "dotted") +
-  labs(x = expression(log(QMD)))
+  labs(
+    x = expression(ln(QMD)),
+    y = expression(italic(beta)(year))
+  ) + 
+  scale_x_continuous(limits = c(2.4, 5))
+
+gg_lqmm_biome12_both <- cowplot::plot_grid(
+  gg_lqmm_biome12,
+  gg_lqmm_biome12_byqmdbin,
+  ncol = 1,
+  rel_heights = c(1, 0.4),
+  align = "v"
+)
 
 # Publication figures ----------------------------------------------------------
 ## Figure 1 --------------------------------------------------------------------
@@ -1179,7 +1465,39 @@ ggsave(
   height = 7.5
 )
 
-## SI Figure histogram----------------------------------------------------------
+
+### Quantile regression ----------------------------------------------------------
+legend <- get_legend(
+  gg_lqmm_biome1_both + 
+    theme(legend.position = "right")
+)
+
+fig1_lqmm <- cowplot::plot_grid(
+  gg_lqmm_biome1_both, 
+  gg_lqmm_biome4_both, 
+  gg_lqmm_biome5_both, 
+  gg_lqmm_biome6_both, 
+  gg_lqmm_biome12_both,
+  legend,
+  ncol = 3
+)
+
+ggsave(
+  filename = here::here("manuscript/figures/fig1_lqmm.pdf"),
+  plot = fig1_lqmm,
+  width = 11, 
+  height = 10
+)
+
+ggsave(
+  filename = here::here("manuscript/figures/fig1_lqmm.png"),
+  plot = fig1_lqmm,
+  width = 11, 
+  height = 10
+)
+
+
+## SI Figure histogram over years ----------------------------------------------
 fig_hist_year <- cowplot::plot_grid(
   gg_hist_year_biome1, 
   gg_hist_year_biome4, 

@@ -99,7 +99,7 @@ plot_stl_bybiome <- function(df, mod, name, years = c(1985, 2000, 2015), plot_le
       plot.caption = element_text(vjust = -1),
       plot.title.position = "plot"
     ) +
-  scale_x_continuous(limits = c(2,4.5),breaks = seq(2,4,1)) +
-  scale_y_continuous(limits = c(2.9,9.3),breaks = seq(4,8,2))
+  scale_x_continuous(limits = c(2,4.5), breaks = seq(2,4,1)) +
+  scale_y_continuous(limits = c(2.9,9.3), breaks = seq(4,8,2))
   
 }

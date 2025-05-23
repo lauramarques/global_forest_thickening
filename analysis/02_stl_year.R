@@ -26,14 +26,17 @@ library(here)
 library(viridis)
 library(rnaturalearth)
 library(rnaturalearthdata)
+library(purrr)
 
 # Load functions ---------------------------------------------------------------
+# files <- list.files(path = "./R", pattern = "\\.R$", full.names = TRUE)
+# walk(files, source)
 source(here("R/functions.R"))
 source(here("R/plot_stl_bybiome.R"))
 
 # load data
 data_fil_biomes <- readRDS(here("data/data_fil_biomes.rds"))
-data_fil_biomes <- readRDS(here("~/GFDYglobe/data/inputs/data_fil_biomes.rds"))
+# data_fil_biomes <- readRDS(here("~/GFDYglobe/data/inputs/data_fil_biomes.rds"))
 
 plot_map_fil <-  plot_map(data_fil_biomes)
 plot_map_fil
@@ -71,15 +74,17 @@ summary(mod_lmm_biome1)
 gg_stl_biome1 <- plot_stl_bybiome(
   data_fil_biome1, 
   mod_lmm_biome1, 
-  name = "Tropical Moist Broadleaf Forests", 
+  name = bquote(bold("a") ~~ "Tropical Moist Broadleaf Forests"), 
   years = c(1985, 2000, 2015)
-) + theme(legend.position = "right")
+)
 
 ### Data over years ------------------------------------------------------------
-hist_Year <- ggplot(data_fil_biome1, aes(x = year)) + 
+gg_hist_year_biome1 <- ggplot(data_fil_biome1, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
-  theme_classic()
-hist_Year
+  theme_classic() +
+  labs(x = "Year", y = "Number of invenories")
+
+gg_hist_year_biome1
 
 ### STL shift ------------------------------------------------------------------
 # Mean percent increase in N per year
@@ -157,16 +162,17 @@ summary(mod_lmm_biome4)
 gg_stl_biome4 <- plot_stl_bybiome(
   data_fil_biome4, 
   mod_lmm_biome4, 
-  name = "Temperate Broadleaf & Mixed Forests", 
+  name = bquote(bold("b") ~~ "Temperate Broadleaf & Mixed Forests"), 
   years = c(1985, 2000, 2015)
 )
 
 ### Data over years ------------------------------------------------------------
-hist_Year <- ggplot(data_fil_biome4, aes(x = year)) + 
+gg_hist_year_biome4 <- ggplot(data_fil_biome4, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
-  theme_classic()
+  theme_classic() +
+  labs(x = "Year", y = "Number of invenories")
 
-hist_Year
+gg_hist_year_biome4
 
 ### STL shift ------------------------------------------------------------------
 # Mean percent increase in N per year
@@ -242,16 +248,17 @@ summary(mod_lmm_biome5)
 gg_stl_biome5 <- plot_stl_bybiome(
   data_fil_biome5, 
   mod_lmm_biome5, 
-  name = "Temperate Conifer Forests Forest", 
+  name = bquote(bold("c") ~~ "Temperate Conifer Forests Forest"), 
   years = c(1985, 2000, 2015)
 )
 
 ### Data over years ------------------------------------------------------------
-hist_Year <- ggplot(data_fil_biome5, aes(x = year)) + 
+gg_hist_year_biome5 <- ggplot(data_fil_biome5, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
-  theme_classic()
+  theme_classic() +
+  labs(x = "Year", y = "Number of invenories")
 
-hist_Year
+gg_hist_year_biome5
 
 ### STL shift ------------------------------------------------------------------
 # Mean percent increase in N per year
@@ -326,16 +333,17 @@ mod_lmm_biome6 = lmer(
 gg_stl_biome6 <- plot_stl_bybiome(
   data_fil_biome6, 
   mod_lmm_biome6, 
-  name = "Boreal Forests/Taiga Forest", 
+  name = bquote(bold("c") ~~ "Boreal Forests/Taiga Forest"), 
   years = c(1985, 2000, 2015)
 )
 
 ### Data over years ------------------------------------------------------------
-hist_Year <- ggplot(data_fil_biome6, aes(x = year)) + 
+gg_hist_year_biome6 <- ggplot(data_fil_biome6, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
-  theme_classic()
+  theme_classic() +
+  labs(x = "Year", y = "Number of invenories")
 
-hist_Year
+gg_hist_year_biome6
 
 ### STL shift ------------------------------------------------------------------
 # Mean percent increase in N per year
@@ -411,16 +419,17 @@ mod_lmm_biome12 = lmer(
 gg_stl_biome12 <- plot_stl_bybiome(
   data_fil_biome12, 
   mod_lmm_biome12, 
-  name = "Mediterranean Forests", 
+  name = bquote(bold("d") ~~ "Mediterranean Forests"), 
   years = c(1985, 2000, 2015)
 )
 
 ### Data over years ------------------------------------------------------------
-hist_Year <- ggplot(data_fil_biome12, aes(x = year)) + 
+gg_hist_year_biome12 <- ggplot(data_fil_biome12, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
-  theme_classic()
+  theme_classic() +
+  labs(x = "Year", y = "Number of invenories")
 
-hist_Year
+gg_hist_year_biome12
 
 ### STL shift ------------------------------------------------------------------
 # Mean percent increase in N per year
@@ -478,15 +487,27 @@ change_n
 # 
 
 # Publication Figure 1 ---------------------------------------------------------
-fig1 <- 
+legend <- get_legend(
   gg_stl_biome1 + 
-  gg_stl_biome4 + 
-  gg_stl_biome5 + 
-  gg_stl_biome6 + 
-  gg_stl_biome12 +
-  guide_area() +
-  plot_layout(ncol = 3, guides = "collect") +
-  plot_annotation(tag_levels = "a",tag_suffix = ")")
+    theme(legend.position = "right")
+  )
+
+fig1 <- cowplot::plot_grid(
+  gg_stl_biome1, 
+  gg_stl_biome4, 
+  gg_stl_biome5, 
+  gg_stl_biome6, 
+  gg_stl_biome12,
+  legend,
+  ncol = 3
+)
+
+ggsave(
+  filename = here::here("manuscript/figures/fig1.pdf"),
+  plot = fig1,
+  width = 11, 
+  height = 7.5
+)
 
 ggsave(
   filename = here::here("manuscript/figures/fig1.png"),
@@ -695,9 +716,7 @@ gg_stl_int_biome12 <- plot_stl_bybiome(
 )
 
 # Publication Figure 1 ---------------------------------------------------------
-
-fig1 <- 
-  gg_stl_int_biome1 + 
+fig1 <- gg_stl_int_biome1 + 
   gg_stl_int_biome4 + 
   gg_stl_int_biome5 + 
   gg_stl_int_biome6 + 

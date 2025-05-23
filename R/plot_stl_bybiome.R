@@ -1,4 +1,4 @@
-plot_stl_bybiome <- function(df, mod, name, years = c(1985, 2000, 2015), plot_legend = FALSE){
+plot_stl_bybiome <- function(df, mod, name, years = c(1985, 2000, 2015), plot_legend = FALSE, interactions = FALSE){
   
   # predict for visualisation
   preddata <- ggpredict(
@@ -9,13 +9,42 @@ plot_stl_bybiome <- function(df, mod, name, years = c(1985, 2000, 2015), plot_le
   
   # significance of year in subtitle
   out <- summary(mod)
-  caption <- out$coefficients["scale(year)", "Estimate"] |>
-    cbind(out$coefficients["scale(year)", "Pr(>|t|)"]) |>
-    as_tibble() |>
-    rename(estimate = V1, pvalue = V2) |>
-    mutate(estimate = round(estimate, 3),
-           pvalue = ifelse(pvalue < 0.001, "< 0.001 ***", paste0(round(pvalue, 3)))
-           )
+  
+  if (interactions){
+    
+    df_caption <- tibble(
+      variable = c("year", "qmd_year"),
+      estimate = out$coefficients[c("scale(year)", "scale(logQMD):scale(year)"), "Estimate"],
+      pvalue = out$coefficients[c("scale(year)", "scale(logQMD):scale(year)"), "Pr(>|t|)"]
+      ) |> 
+      mutate(
+        estimate_lab = round(estimate, 3),
+        pval_lab = ifelse(pvalue < 0.001, "< 0.001 ***", paste0(round(pvalue, 3)))
+      )
+    
+    subtitle <- bquote(
+      italic(n) == .(as.character(nobs(mod))) ~ ~ ~
+        italic(p)(yr) == .(df_caption$pval_lab[1]) ~ ~ ~
+        italic(p)(QMD %*% yr) == .(df_caption$pval_lab[2])
+    )
+    
+  } else {
+    
+    df_caption <- tibble(
+      variable = c("year"),
+      estimate = out$coefficients[c("scale(year)"), "Estimate"],
+      pvalue = out$coefficients[c("scale(year)"), "Pr(>|t|)"]
+    ) |> 
+      mutate(
+        estimate_lab = round(estimate, 3),
+        pval_lab = ifelse(pvalue < 0.001, "< 0.001 ***", paste0(round(pvalue, 3)))
+      )
+    
+    subtitle <- bquote(
+      italic(n) == .(as.character(nobs(mod))) ~ ~ ~
+        italic(p)[yr] == .(df_caption$pval_lab[1])
+    )
+  }
   
   # panel for final plot
   ggplot() + 
@@ -46,10 +75,7 @@ plot_stl_bybiome <- function(df, mod, name, years = c(1985, 2000, 2015), plot_le
       x = expression(ln(QMD)),
       y = expression(ln(italic(N))), 
       title = name,
-      subtitle = bquote(
-        italic(n) == .(as.character(nobs(mod))) ~ ~ ~
-        italic(p)[year] == .(caption$pvalue[1])
-        ),
+      subtitle = subtitle,
       color  = "Year"
     ) +
     scale_color_manual("Year",
@@ -67,6 +93,7 @@ plot_stl_bybiome <- function(df, mod, name, years = c(1985, 2000, 2015), plot_le
       legend.text = element_text(size = 10), 
       legend.title = element_text(size = 10),
       plot.title = element_text(size = 12),
+      plot.subtitle = element_text(size = 10),
       legend.key = element_rect(fill = NA, color = NA),
       legend.position = ifelse(plot_legend, "bottom", "none"),
       plot.caption = element_text(vjust = -1),

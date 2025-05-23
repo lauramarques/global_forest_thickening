@@ -45,7 +45,8 @@ plot_map_fil
 plot_stl_fil <- plot_stl(data_fil_biomes)
 plot_stl_fil
 
-# Biome 1: Tropical & Subtropical Moist Broadleaf Forests  ---------------------
+# STL LMM without interactions--------------------------------------------------
+## Biome 1: Tropical & Subtropical Moist Broadleaf Forests  ---------------------
 
 # XXX In my interpretation because I don't have the file above, and as far as I 
 # can see, these are identical:
@@ -58,8 +59,8 @@ plot_stl_fil
 data_fil_biome1 <- data_fil_biomes |>
   filter(biomeID == 1)
 
-## Linear mixed effects model --------------------------------------------------
-### Fit model ------------------------------------------------------------------
+### Linear mixed effects model --------------------------------------------------
+#### Fit model ------------------------------------------------------------------
 mod_lmm_biome1 = lmer(
   logDensity ~ scale(logQMD) + 
     scale(year) + 
@@ -70,7 +71,7 @@ mod_lmm_biome1 = lmer(
   )
 summary(mod_lmm_biome1)
 
-### Plot self-thinning line ----------------------------------------------------
+#### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome1 <- plot_stl_bybiome(
   data_fil_biome1, 
   mod_lmm_biome1, 
@@ -78,7 +79,7 @@ gg_stl_biome1 <- plot_stl_bybiome(
   years = c(1985, 2000, 2015)
 )
 
-### Data over years ------------------------------------------------------------
+#### Data over years ------------------------------------------------------------
 gg_hist_year_biome1 <- ggplot(data_fil_biome1, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
   theme_classic() +
@@ -90,7 +91,7 @@ gg_hist_year_biome1 <- ggplot(data_fil_biome1, aes(x = year)) +
 
 gg_hist_year_biome1
 
-### STL shift ------------------------------------------------------------------
+#### STL shift ------------------------------------------------------------------
 # Mean percent increase in N per year
 pred <- ggpredict(
   mod_lmm_biome1, 
@@ -114,7 +115,7 @@ change_n <- pred|>
 
 change_n
 
-### Various fit info -----------------------------------------------------------
+#### Various fit info -----------------------------------------------------------
 # out <- summary(mod_lmm_biome1)
 # print(out)
 # r.squaredGLMM(mod_lmm_biome1)
@@ -145,13 +146,13 @@ change_n
 # years
 
 
-# Biome 4: Temperate Broadleaf & Mixed Forests  --------------------------------
+## Biome 4: Temperate Broadleaf & Mixed Forests  --------------------------------
 
 data_fil_biome4 <- data_fil_biomes |>
   filter(biomeID == 4)
 
-## Linear mixed effects model --------------------------------------------------
-### Fit model ------------------------------------------------------------------
+### Linear mixed effects model --------------------------------------------------
+#### Fit model ------------------------------------------------------------------
 mod_lmm_biome4 = lmer(
   logDensity ~ scale(logQMD) + 
     scale(year) + 
@@ -162,7 +163,7 @@ mod_lmm_biome4 = lmer(
 )
 summary(mod_lmm_biome4)
 
-### Plot self-thinning line ----------------------------------------------------
+#### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome4 <- plot_stl_bybiome(
   data_fil_biome4, 
   mod_lmm_biome4, 
@@ -170,7 +171,7 @@ gg_stl_biome4 <- plot_stl_bybiome(
   years = c(1985, 2000, 2015)
 )
 
-### Data over years ------------------------------------------------------------
+#### Data over years ------------------------------------------------------------
 gg_hist_year_biome4 <- ggplot(data_fil_biome4, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
   theme_classic() +
@@ -182,7 +183,7 @@ gg_hist_year_biome4 <- ggplot(data_fil_biome4, aes(x = year)) +
 
 gg_hist_year_biome4
 
-### STL shift ------------------------------------------------------------------
+#### STL shift ------------------------------------------------------------------
 # Mean percent increase in N per year
 pred <- ggpredict(
   mod_lmm_biome4, 
@@ -206,7 +207,7 @@ change_n <- pred|>
 
 change_n
 
-### Various fit info -----------------------------------------------------------
+#### Various fit info -----------------------------------------------------------
 # out <- summary(mod_lmm_biome4)
 # print(out)
 # r.squaredGLMM(mod_lmm_biome4)
@@ -236,12 +237,12 @@ change_n
 # years <- as.integer(summary(data_fil_biome4$year))
 # years
 
-# Biome 5: Temperate Conifer Forests Forest  --------------------------------
+## Biome 5: Temperate Conifer Forests Forest  --------------------------------
 data_fil_biome5 <- data_fil_biomes |>
   filter(biomeID == 5)
 
-## Linear mixed effects model --------------------------------------------------
-### Fit model ------------------------------------------------------------------
+### Linear mixed effects model --------------------------------------------------
+#### Fit model ------------------------------------------------------------------
 mod_lmm_biome5 = lmer(
   logDensity ~ scale(logQMD) + 
     scale(year) + 
@@ -252,7 +253,7 @@ mod_lmm_biome5 = lmer(
 )
 summary(mod_lmm_biome5)
 
-### Plot self-thinning line ----------------------------------------------------
+#### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome5 <- plot_stl_bybiome(
   data_fil_biome5, 
   mod_lmm_biome5, 
@@ -260,7 +261,7 @@ gg_stl_biome5 <- plot_stl_bybiome(
   years = c(1985, 2000, 2015)
 )
 
-### Data over years ------------------------------------------------------------
+#### Data over years ------------------------------------------------------------
 gg_hist_year_biome5 <- ggplot(data_fil_biome5, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
   theme_classic() +
@@ -272,7 +273,7 @@ gg_hist_year_biome5 <- ggplot(data_fil_biome5, aes(x = year)) +
 
 gg_hist_year_biome5
 
-### STL shift ------------------------------------------------------------------
+#### STL shift ------------------------------------------------------------------
 # Mean percent increase in N per year
 pred <- ggpredict(
   mod_lmm_biome5, 
@@ -296,7 +297,7 @@ change_n <- pred|>
 
 change_n
 
-### Various fit info -----------------------------------------------------------
+#### Various fit info -----------------------------------------------------------
 # out <- summary(mod_lmm_biome5)
 # print(out)
 # r.squaredGLMM(mod_lmm_biome5)
@@ -326,12 +327,12 @@ change_n
 # years <- as.integer(summary(data_fil_biome2$year))
 # years
 
-# Biome 6: Boreal Forests/Taiga Forest  --------------------------------
+## Biome 6: Boreal Forests/Taiga Forest  --------------------------------
 data_fil_biome6 <- data_fil_biomes |>
   filter(biomeID == 6)
 
-## Linear mixed effects model --------------------------------------------------
-### Fit model ------------------------------------------------------------------
+### Linear mixed effects model --------------------------------------------------
+#### Fit model ------------------------------------------------------------------
 mod_lmm_biome6 = lmer(
   logDensity ~ scale(logQMD) + 
     scale(year) + 
@@ -341,27 +342,27 @@ mod_lmm_biome6 = lmer(
   na.action = "na.exclude"
 )
 
-### Plot self-thinning line ----------------------------------------------------
+#### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome6 <- plot_stl_bybiome(
   data_fil_biome6, 
   mod_lmm_biome6, 
-  name = bquote(bold("c") ~~ "Boreal Forests/Taiga Forest"), 
+  name = bquote(bold("d") ~~ "Boreal Forests/Taiga Forest"), 
   years = c(1985, 2000, 2015)
 )
 
-### Data over years ------------------------------------------------------------
+#### Data over years ------------------------------------------------------------
 gg_hist_year_biome6 <- ggplot(data_fil_biome6, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
   theme_classic() +
   labs(
-    title = bquote(bold("c") ~~ "Boreal Forests/Taiga Forest"), 
+    title = bquote(bold("d") ~~ "Boreal Forests/Taiga Forest"), 
     x = "Year", 
     y = "Number of invenories"
     )
 
 gg_hist_year_biome6
 
-### STL shift ------------------------------------------------------------------
+#### STL shift ------------------------------------------------------------------
 # Mean percent increase in N per year
 pred <- ggpredict(
   mod_lmm_biome6, 
@@ -385,7 +386,7 @@ change_n <- pred|>
 
 change_n
 
-### Various fit info -----------------------------------------------------------
+#### Various fit info -----------------------------------------------------------
 # out <- summary(mod_lmm_biome6)
 # print(out)
 # r.squaredGLMM(mod_lmm_biome6)
@@ -416,12 +417,12 @@ change_n
 # years
 
 
-# Biome 12: Mediterranean Forests ----------------------------------------------
+## Biome 12: Mediterranean Forests ----------------------------------------------
 data_fil_biome12 <- data_fil_biomes |>
   filter(biomeID == 12)
 
-## Linear mixed effects model --------------------------------------------------
-### Fit model ------------------------------------------------------------------
+### Linear mixed effects model --------------------------------------------------
+#### Fit model ------------------------------------------------------------------
 mod_lmm_biome12 = lmer(
   logDensity ~ scale(logQMD) + 
     scale(year) + 
@@ -431,27 +432,27 @@ mod_lmm_biome12 = lmer(
   na.action = "na.exclude"
 )
 
-### Plot self-thinning line ----------------------------------------------------
+#### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome12 <- plot_stl_bybiome(
   data_fil_biome12, 
   mod_lmm_biome12, 
-  name = bquote(bold("d") ~~ "Mediterranean Forests"), 
+  name = bquote(bold("e") ~~ "Mediterranean Forests"), 
   years = c(1985, 2000, 2015)
 )
 
-### Data over years ------------------------------------------------------------
+#### Data over years ------------------------------------------------------------
 gg_hist_year_biome12 <- ggplot(data_fil_biome12, aes(x = year)) + 
   geom_histogram(color = "black", fill = "grey70", bins = 12) + 
   theme_classic() +
   labs(
-    title = bquote(bold("d") ~~ "Mediterranean Forests"), 
+    title = bquote(bold("e") ~~ "Mediterranean Forests"), 
     x = "Year", 
     y = "Number of invenories"
     )
 
 gg_hist_year_biome12
 
-### STL shift ------------------------------------------------------------------
+#### STL shift ------------------------------------------------------------------
 # Mean percent increase in N per year
 pred <- ggpredict(
   mod_lmm_biome12, 
@@ -475,7 +476,7 @@ change_n <- pred|>
 
 change_n
 
-### Various fit info -----------------------------------------------------------
+#### Various fit info -----------------------------------------------------------
 # out <- summary(mod_lmm_biome12)
 # print(out)
 # r.squaredGLMM(mod_lmm_biome12)
@@ -507,7 +508,7 @@ change_n
 # 
 
 
-# # Special case of BCI ----------------------------------------------------------
+## Special case of BCI ----------------------------------------------------------
 # 
 # data_bci <- readRDS(here::here("data/inputs/data_bci.rds"))
 # data_bci
@@ -579,9 +580,9 @@ change_n
 #        caption = paste0("Year estimate = ", caption$estimate, '\n', "Year p-value = ", caption$pvalue))
 # figbci_4_8
 
-# Interaction models -----------------------------------------------------------
+# STL LMM with interactions  ---------------------------------------------------
 
-## Biome 1: Tropical & Subtropical Moist Broadleaf Forests  ---------------------
+## Biome 1: Tropical & Subtropical Moist Broadleaf Forests  --------------------
 ### Fit model ------------------------------------------------------------------
 mod_lmm_int_biome1 = lmer(
   logDensity ~ scale(logQMD) * 
@@ -597,13 +598,21 @@ summary(mod_lmm_int_biome1)
 gg_stl_int_biome1 <- plot_stl_bybiome(
   data_fil_biome1, 
   mod_lmm_int_biome1, 
-  name = "Tropical Moist Broadleaf Forests", 
-  years = c(1985, 2000, 2015)
-) + theme(legend.position = "right")
+  name = bquote(bold("a") ~~ "Tropical Moist Broadleaf Forests"), 
+  years = c(1985, 2000, 2015), 
+  interactions = TRUE
+)
 
-gg_qmd_int_biome1 <- plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, colors = c("#21918c","#fde725", "#440154"),
-                       terms = c("year","logQMD[2,3,4]")) + theme_classic() + ggtitle("Tropical Moist Broadleaf Forests")
-gg_qmd_int_biome1
+gg_qmd_int_biome1 <- plot_model(
+  mod_lmm_int_biome1,
+  type = "pred",
+  show.data=TRUE, 
+  dot.size = 1.0, 
+  colors = c("#21918c","#fde725", "#440154"),
+  terms = c("year", "logQMD[2.5,3,3.5]")) + 
+  theme_classic() + 
+  labs(title = bquote(bold("a") ~~ "Tropical Moist Broadleaf Forests"))
+
 
 ## Biome 4: Temperate Broadleaf & Mixed Forests Forest  ------------------------
 ### Fit model ------------------------------------------------------------------
@@ -621,29 +630,21 @@ summary(mod_lmm_int_biome4)
 gg_stl_int_biome4 <- plot_stl_bybiome(
   data_fil_biome4, 
   mod_lmm_int_biome4, 
-  name = "Tropical Moist Broadleaf Forests", 
-  years = c(1985, 2000, 2015)
+  name = bquote(bold("b") ~~ "Temperate Broadleaf & Mixed Forests"), 
+  years = c(1985, 2000, 2015), 
+  interactions = TRUE
 )
 
-## Biome 4: Temperate Broadleaf & Mixed Forests   ------------------------------
-### Fit model ------------------------------------------------------------------
-mod_lmm_int_biome4 = lmer(
-  logDensity ~ scale(logQMD) * 
-    scale(year) + 
-    (1|dataset/plotID) + 
-    (1|species), 
-  data = data_fil_biome4, 
-  na.action = "na.exclude"
-)
-summary(mod_lmm_int_biome4)
+gg_qmd_int_biome4 <- plot_model(
+  mod_lmm_int_biome4,
+  type = "pred",
+  show.data = TRUE, 
+  dot.size = 1.0, 
+  colors = c("#21918c", "#fde725", "#440154"),
+  terms = c("year","logQMD[2.5,3,3.5]")) + 
+  theme_classic() + 
+  labs(title = bquote(bold("b") ~~ "Temperate Broadleaf & Mixed Forests"))
 
-### Plot self-thinning line ----------------------------------------------------
-gg_stl_int_biome4 <- plot_stl_bybiome(
-  data_fil_biome4, 
-  mod_lmm_int_biome4, 
-  name = "Tropical Moist Broadleaf Forests", 
-  years = c(1985, 2000, 2015)
-)
 
 ## Biome 5: Temperate Conifer Forests    ---------------------------------------
 ### Fit model ------------------------------------------------------------------
@@ -661,9 +662,21 @@ summary(mod_lmm_int_biome5)
 gg_stl_int_biome5 <- plot_stl_bybiome(
   data_fil_biome5, 
   mod_lmm_int_biome5, 
-  name = "Tropical Moist Broadleaf Forests", 
-  years = c(1985, 2000, 2015)
+  name = bquote(bold("c") ~~ "Temperate Conifer Forests Forest"), 
+  years = c(1985, 2000, 2015), 
+  interactions = TRUE
 )
+
+gg_qmd_int_biome5 <- plot_model(
+  mod_lmm_int_biome5,
+  type = "pred",
+  show.data = TRUE, 
+  dot.size = 1.0, 
+  colors = c("#21918c", "#fde725", "#440154"),
+  terms = c("year","logQMD[2.5,3,3.5]")) + 
+  theme_classic() + 
+  labs(title = bquote(bold("c") ~~ "Temperate Conifer Forests Forest"))
+
 
 ## Biome 6: Boreal Forests/Taiga  ----------------------------------------------
 ### Fit model ------------------------------------------------------------------
@@ -682,9 +695,21 @@ summary(mod_lmm_int_biome6)
 gg_stl_int_biome6 <- plot_stl_bybiome(
   data_fil_biome6, 
   mod_lmm_int_biome6, 
-  name = "Tropical Moist Broadleaf Forests", 
-  years = c(1985, 2000, 2015)
+  name = bquote(bold("d") ~~ "Boreal Forests/Taiga Forest"), 
+  years = c(1985, 2000, 2015), 
+  interactions = TRUE
 )
+
+gg_qmd_int_biome6 <- plot_model(
+  mod_lmm_int_biome6,
+  type = "pred",
+  show.data = TRUE, 
+  dot.size = 1.0, 
+  colors = c("#21918c", "#fde725", "#440154"),
+  terms = c("year","logQMD[2.5,3,3.5]")) + 
+  theme_classic() + 
+  labs(title = bquote(bold("d") ~~ "Boreal Forests/Taiga Forest"))
+
 
 ## Biome 12: Mediterranean Forests  --------------------------------------------
 ### Fit model ------------------------------------------------------------------
@@ -702,26 +727,21 @@ summary(mod_lmm_int_biome12)
 gg_stl_int_biome12 <- plot_stl_bybiome(
   data_fil_biome12, 
   mod_lmm_int_biome12, 
-  name = "Tropical Moist Broadleaf Forests", 
-  years = c(1985, 2000, 2015)
+  name = bquote(bold("e") ~~ "Mediterranean Forests"), 
+  years = c(1985, 2000, 2015), 
+  interactions = TRUE
 )
 
-# Publication Figure 1 ---------------------------------------------------------
-fig1 <- gg_stl_int_biome1 + 
-  gg_stl_int_biome4 + 
-  gg_stl_int_biome5 + 
-  gg_stl_int_biome6 + 
-  gg_stl_int_biome12 +
-  guide_area() +
-  plot_layout(ncol = 3, guides = "collect") +
-  plot_annotation(tag_levels = "a",tag_suffix = ")")
+gg_qmd_int_biome12 <- plot_model(
+  mod_lmm_int_biome12,
+  type = "pred",
+  show.data = TRUE, 
+  dot.size = 1.0, 
+  colors = c("#21918c", "#fde725", "#440154"),
+  terms = c("year","logQMD[2.5,3,3.5]")) + 
+  theme_classic() + 
+  labs(title = bquote(bold("e") ~~ "Mediterranean Forests"))
 
-ggsave(
-  filename = here::here("manuscript/figures/fig1int.png"),
-  plot = fig1,
-  width = 11, 
-  height = 7.5
-)
 
 # Quantile regression ----------------------------------------------------------
 data_unm <- readRDS(here::here("data/data_unm.rds"))
@@ -1099,6 +1119,7 @@ df_lqmm_byqmdbin |>
 
 # Publication figures ----------------------------------------------------------
 ## Figure 1 --------------------------------------------------------------------
+### No interactions ------------------------------------------------------------
 legend <- get_legend(
   gg_stl_biome1 + 
     theme(legend.position = "right")
@@ -1124,6 +1145,36 @@ ggsave(
 ggsave(
   filename = here::here("manuscript/figures/fig1.png"),
   plot = fig1,
+  width = 11, 
+  height = 7.5
+)
+
+### With interactions ----------------------------------------------------------
+legend <- get_legend(
+  gg_stl_int_biome1 + 
+    theme(legend.position = "right")
+)
+
+fig1_int <- cowplot::plot_grid(
+  gg_stl_int_biome1, 
+  gg_stl_int_biome4, 
+  gg_stl_int_biome5, 
+  gg_stl_int_biome6, 
+  gg_stl_int_biome12,
+  legend,
+  ncol = 3
+)
+
+ggsave(
+  filename = here::here("manuscript/figures/fig1_int.pdf"),
+  plot = fig1_int,
+  width = 11, 
+  height = 7.5
+)
+
+ggsave(
+  filename = here::here("manuscript/figures/fig1_int.png"),
+  plot = fig1_int,
   width = 11, 
   height = 7.5
 )

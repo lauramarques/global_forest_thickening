@@ -886,6 +886,8 @@ df_disturbed |>
   theme_classic() +
   labs(x = "Year",  y = expression(logit(fraction ~ disturbed)))
 
+ggsave(filename = ".pdf", width = 6, height = 4)
+
 # remove disturbed plots
 data_unm_biome <- data_unm_biome |> 
   filter(ndisturbed == 0)
@@ -1216,9 +1218,10 @@ df_lqmm_byqmdbin |>
   theme_classic()
 
 df_lqmm_byqmdbin |> 
-  ggplot(aes(bin_lqmm, coef_year)) +
+  ggplot(aes(as.numeric(as.character(bin_lqmm)), coef_year)) +
   geom_point(size = 2) +
   geom_errorbar(aes(ymin = coef_year_lower, ymax = coef_year_upper), width = 0) +
   theme_classic() +
-  geom_hline(yintercept = 0, linetype = "dotted")
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  labs(x = expression(log(QMD)))
 

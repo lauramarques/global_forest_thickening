@@ -23,7 +23,6 @@ csink_ORI <- function(data, a_mean, a_sd){
   density_t1 <- exp(log_density_t1)
   
   # 3. Estimate the biomass change, given the QMDj, N0 and N1 as: dB = ak * QMDj^2 * (N1 - N0)
-  
   newdata_biomass <- data.frame(
     density = c(density_t0, density_t1),
     QMD = rep(df_sub_sample$QMD, 2),

@@ -1,6 +1,7 @@
+# Fixed effects plot -----------------------------------------------------------
 # This script analyses the main environmental drivers affecting the STL changes
 
-# load packages ----
+## Load packages ---------------------------------------------------------------
 #library(renv)
 library(readr)
 library(dplyr)
@@ -20,58 +21,53 @@ library(sp)
 library(lqmm)
 library(ggforce)
 library(MuMIn)
-library(ingestr)
+# library(ingestr)
 library(DescTools)
 library(corrplot)
 library(ggokabeito)
 
 # load data
-data_fil_biomes <- readRDS(file.path(here::here(), "/data/inputs/data_fil_biomes.rds"))
+data_fil_biomes <- readRDS(here::here("data/data_fil_biomes.rds"))
+
+# XXX explain filter
 data_fil_biomes <- data_fil_biomes |>
-  filter(year >= 1980) 
+  filter(year >= 1980)
 
 # correlation among variables
-M <- as.matrix(data_biomes_fil[,c(27,29,30,33)] %>% distinct())
+M <- as.matrix(data_fil_biomes[,c(27,29,30,33)] %>% distinct())
 corrplot(cor(M, use="pairwise.complete.obs"), method="number")
 
-# fit model ----
-Fit_Year = lmer(logDensity ~ scale(logQMD) + 
-                  scale(year) * scale(ai) + 
-                  scale(year) * scale(ndep) + 
-                  scale(year) * scale(ORGC) + 
-                  scale(year) * scale(PBR) + 
-                  (1|dataset/plotID) + (1|species),  
-                data = data_fil_biomes, na.action = "na.exclude")
-summary(Fit_Year)
-r.squaredGLMM(Fit_Year)
-AIC(Fit_Year)
-plot(allEffects(Fit_Year))
-ggplot() + 
-  geom_point(data = data_fil_biomes |> filter(country=="Switzerland"),
-             aes(x = year, y = ndep, col=dataset), alpha=0.5, size = 1.5, inherit.aes = FALSE) 
+# LMM with lmer() --------------------------------------------------------------
+## Fit model -------------------------------------------------------------------
+# with all environmental factors and their interaction with time as predictors
+mod_lmer_env = lmer(
+  logDensity ~ scale(logQMD) + 
+    scale(year) * scale(ai) + 
+    scale(year) * scale(ndep) + 
+    scale(year) * scale(ORGC) + 
+    scale(year) * scale(PBR) + 
+    (1|dataset/plotID) + (1|species),  
+  data = data_fil_biomes, 
+  na.action = "na.exclude"
+  )
 
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, terms = c("logQMD","ai"))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, terms = c("logQMD","ndep"))
+## Visualise fixed effects -----------------------------------------------------
+out <- summary(mod_lmer_env)
 
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, terms = c("year","ai"))
-plot_model(Fit_Year,type = "pred",show.data=TRUE, dot.size=1.0, terms = c("year","ndep"))
-
-plot_model(Fit_Year)
-out <- summary(Fit_Year)
-
-estimates <- round(out$coefficients[,c(1,2,5)],4) |>
+df_coef <- round(out$coefficients[,c(1,2,5)],4) |>
   as.data.frame() |>
-  rename(pval = `Pr(>|t|)`,
-         std = `Std. Error`,
-         est = Estimate) |>
+  rename(
+    pval = `Pr(>|t|)`,
+    std = `Std. Error`,
+    est = Estimate
+    ) |>
   rownames_to_column(var = "var") |>
   mutate(pvalue = ifelse(pval>0.1,"", pval),
          pvalue = ifelse(pval<0.05,"*", pvalue),
          pvalue = ifelse(pval<0.01,"**", pvalue),
          pvalue = ifelse(pval<0.001,"***",pvalue))
-estimates
-str(estimates)
-estimates_plot <- estimates |>
+
+df_coef_plot <- df_coef |>
   mutate(eff = ifelse(row_number() %in% 1:7, "Main effect", "Interaction terms"),
          eff = as_factor(eff)) |>
   mutate(varnew = ifelse(var == "scale(year)", "year", var),
@@ -86,29 +82,249 @@ estimates_plot <- estimates |>
          varnew = as_factor(varnew),
          varnew = fct_relevel(varnew,c("PBR","Ndep","ORGC","MI"))) |>
   filter(varnew == "MI"|varnew == "Ndep"|varnew ==  "PBR"|varnew == "ORGC")
-str(estimates_plot)
 
-# Figure 2 ----
-fig2 <- ggplot(estimates_plot) + 
-  geom_bar(aes(y = varnew, weight= est,fill = eff), position = position_stack(reverse = TRUE), width=.5) +
-  geom_text(aes(y = varnew,  x= est, label = pvalue), color = "white", size = 5, position = position_stack(vjust = 0.5), vjust = 0.75) + 
-  xlab("Coefficients") + ylab("Environmental drivers") + labs(fill = "Predictors") +
-  geom_vline(xintercept = 0,color = "black", linetype = "dashed", size = .8) +
-  theme_classic() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                           axis.text = element_text(size = 10),axis.title = element_text(size = 10),
-                           axis.text.y = element_text(hjust = 0.5),
-                           legend.text = element_text(size = 9.5),legend.title = element_text(size = 9.5),
-                           plot.title = element_text(size = 10),
-                           legend.key = element_rect(fill = NA, color = NA),
-                           legend.position = c(0.85, 0.15),
-                           legend.direction="vertical",
-                           legend.box = "horizontal",
-                           legend.margin = margin(2, 2, 2, 2),
-                           legend.key.size = unit(.6, 'cm'),
-                           legend.box.margin = margin(1, 1, 1, 1)) +
-  scale_x_continuous(limits = c(-0.04,0.055), breaks = seq(-0.05,0.05,0.025)) +
-  scale_y_discrete(labels = c("MI" = "Moisture \nIndex", "ORGC" = "Organic \ncarbon", "Ndep" = "Nitrogen \ndeposition", "PBR" = "Phosporus \navailability")) +
-  scale_fill_okabe_ito()
-fig2
+## Save model object and coefficients table ------------------------------------
+saveRDS(mod_lmer_env, file = here::here("data/mod_lmer_env.rds"))
+saveRDS(df_coef_plot, file = here::here("data/df_coef_plot.rds"))
 
-ggsave(paste0(here::here(), "/manuscript/figures/fig2.png"), width = 8, height = 5, dpi=300)
+## Plot effects ----------------------------------------------------------------
+fig2a <- df_coef_plot |> 
+  slice(1:4) |>  # only main effects
+  ggplot() + 
+  geom_point(
+    aes(
+      x = varnew,
+      y = est
+      ),
+    size = 3
+    ) +
+  geom_errorbar(
+    aes(
+      x = varnew,
+      ymin = est - 1.96 * std,
+      ymax = est + 1.96 * std
+    ),
+    width = 0
+  ) +
+  labs(x = "", y = "Coefficient (scaled)", title = "Main effects") +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  theme_classic()  +
+  scale_x_discrete(
+    labels = c(
+      "MI" = "Moisture\n Index", 
+      "ORGC" = "Organic\n carbon", 
+      "Ndep" = "Nitrogen\n deposition", 
+      "PBR" = "Phosporus\n availability")
+  ) +
+  coord_flip()
+
+fig2b <- df_coef_plot |> 
+  slice(5:8) |>  # only main effects
+  ggplot() + 
+  geom_point(
+    aes(
+      x = varnew,
+      y = est
+    ),
+    size = 3
+  ) +
+  geom_errorbar(
+    aes(
+      x = varnew,
+      ymin = est - 1.96 * std,
+      ymax = est + 1.96 * std
+    ),
+    width = 0
+  ) +
+  labs(x = "", y = "Coefficient (scaled)", title = "Interactions with year") +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  theme_classic()  +
+  scale_x_discrete(
+    labels = NULL
+  ) +
+  coord_flip()
+
+cowplot::plot_grid(
+  fig2a,
+  fig2b,
+  labels = letters[1:2],
+  rel_widths = c(1, 0.83)
+)
+
+ggsave(
+  here::here("manuscript/figures/fig2.pdf"), 
+  width = 6, 
+  height = 3
+  )
+
+# # out-of-the-box method
+# plot_model(
+#   mod_lmer_env, 
+#   type = "est", 
+#   terms = c("scale(ai)", "scale(ndep)", "scale(ORGC)", "scale(PBR)"),
+#   title = "Scaled Predictors",
+#   se = TRUE,
+#   show.values = TRUE,
+#   axis.lim = c(-0.01, 0.01)
+# )
+
+## Various diagnostics ---------------------------------------------------------
+summary(mod_lmer_env)
+r.squaredGLMM(mod_lmer_env)
+AIC(mod_lmer_env)
+
+plot(allEffects(mod_lmer_env))
+
+ggplot() + 
+  geom_point(
+    data = data_fil_biomes |> 
+      filter(country=="Switzerland"),
+    aes(x = year, y = ndep, color = dataset), 
+    alpha=0.5, 
+    size = 1.5, 
+    inherit.aes = FALSE
+  ) 
+
+plot_model(mod_lmer_env, type = "pred", show.data = TRUE, dot.size = 1.0, terms = c("logQMD","ai"))
+plot_model(mod_lmer_env, type = "pred", show.data = TRUE, dot.size = 1.0, terms = c("logQMD","ndep"))
+
+plot_model(mod_lmer_env, type = "pred", show.data = TRUE, dot.size = 1.0, terms = c("year","ai"))
+plot_model(mod_lmer_env, type = "pred", show.data = TRUE, dot.size = 1.0, terms = c("year","ndep"))
+
+plot_model(mod_lmer_env)
+
+# LMM with lqmm() --------------------------------------------------------------
+
+## Fit model -------------------------------------------------------------------
+
+# # with all environmental factors and their interaction with time as predictors
+# mod_lqmm_env <- lqmm(
+#   logDensity ~ logQMD + 
+#     year * ai +
+#     year * ndep +
+#     year * ORGC + 
+#     year * PBR,
+#   random = ~1,
+#   group = plotID,
+#   tau = c(0.70, 0.90),
+#   data = data_fil_biomes |> 
+#     select(logQMD, logDensity, year, ai, ndep, ORGC, PBR, plotID) |> 
+#     drop_na() |> 
+#     slice_sample(n = 10000),
+#   type = "normal",
+#   control = list(
+#     LP_max_iter = 2000,
+#     LP_tol_ll = 1e-4
+#   )
+# )
+# 
+
+## Visualise fixed effects -----------------------------------------------------
+# out <- coef(mod_lqmm_env) |> 
+#   as.data.frame() |> 
+#   rownames_to_column(var = "var") |> 
+#   select(var, value = `0.9`)
+# 
+# # this takes too long
+# out <- summary(mod_lqmm_env)
+# 
+# 
+# pval(mod_lqmm_env)
+# 
+# df_coef <- round(out$coefficients[,c(1,2,5)],4) |>
+#   as.data.frame() |>
+#   rename(
+#     pval = `Pr(>|t|)`,
+#     std = `Std. Error`,
+#     est = Estimate
+#   ) |>
+#   rownames_to_column(var = "var") |>
+#   mutate(pvalue = ifelse(pval>0.1,"", pval),
+#          pvalue = ifelse(pval<0.05,"*", pvalue),
+#          pvalue = ifelse(pval<0.01,"**", pvalue),
+#          pvalue = ifelse(pval<0.001,"***",pvalue))
+# 
+# df_coef_plot <- df_coef |>
+#   mutate(eff = ifelse(row_number() %in% 1:7, "Main effect", "Interaction terms"),
+#          eff = as_factor(eff)) |>
+#   mutate(varnew = ifelse(var == "scale(year)", "year", var),
+#          varnew = ifelse(var == "scale(ai)", "MI", varnew),
+#          varnew = ifelse(var == "scale(ndep)", "Ndep", varnew),
+#          varnew = ifelse(var == "scale(ORGC)", "ORGC", varnew),
+#          varnew = ifelse(var == "scale(PBR)", "PBR", varnew),
+#          varnew = ifelse(var == "scale(year):scale(ai)", "MI", varnew),
+#          varnew = ifelse(var == "scale(year):scale(ndep)", "Ndep", varnew),
+#          varnew = ifelse(var == "scale(year):scale(ORGC)", "ORGC", varnew),
+#          varnew = ifelse(var == "scale(year):scale(PBR)", "PBR", varnew),
+#          varnew = as_factor(varnew),
+#          varnew = fct_relevel(varnew,c("PBR","Ndep","ORGC","MI"))) |>
+#   filter(varnew == "MI"|varnew == "Ndep"|varnew ==  "PBR"|varnew == "ORGC")
+# 
+# fig2a <- df_coef_plot |> 
+#   slice(1:4) |>  # only main effects
+#   ggplot() + 
+#   geom_point(
+#     aes(
+#       x = varnew,
+#       y = est
+#     ),
+#     size = 3
+#   ) +
+#   geom_errorbar(
+#     aes(
+#       x = varnew,
+#       ymin = est - 1.96 * std,
+#       ymax = est + 1.96 * std
+#     ),
+#     width = 0
+#   ) +
+#   labs(x = "", y = "Coefficient (scaled)", title = "Main effects") +
+#   geom_hline(yintercept = 0, linetype = "dotted") +
+#   theme_classic()  +
+#   scale_x_discrete(
+#     labels = c(
+#       "MI" = "Moisture\n Index", 
+#       "ORGC" = "Organic\n carbon", 
+#       "Ndep" = "Nitrogen\n deposition", 
+#       "PBR" = "Phosporus\n availability")
+#   ) +
+#   coord_flip()
+# 
+# fig2b <- df_coef_plot |> 
+#   slice(5:8) |>  # only main effects
+#   ggplot() + 
+#   geom_point(
+#     aes(
+#       x = varnew,
+#       y = est
+#     ),
+#     size = 3
+#   ) +
+#   geom_errorbar(
+#     aes(
+#       x = varnew,
+#       ymin = est - 1.96 * std,
+#       ymax = est + 1.96 * std
+#     ),
+#     width = 0
+#   ) +
+#   labs(x = "", y = "Coefficient (scaled)", title = "Interactions with year") +
+#   geom_hline(yintercept = 0, linetype = "dotted") +
+#   theme_classic()  +
+#   scale_x_discrete(
+#     labels = NULL
+#   ) +
+#   coord_flip()
+# 
+# cowplot::plot_grid(
+#   fig2a,
+#   fig2b,
+#   labels = letters[1:2],
+#   rel_widths = c(1, 0.83)
+# )
+# 
+# ggsave(
+#   here::here("manuscript/figures/fig2.pdf"), 
+#   width = 6, 
+#   height = 3
+# )

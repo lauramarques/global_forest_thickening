@@ -15,9 +15,9 @@ library(terra)
 library(ncdf4)
 library(patchwork)
 #library(ggokabeito)
-library(ingestr)
+# library(ingestr)
 library(multidplyr)
-#library(tictoc)
+library(tictoc)
 library(readr)
 
 # Prepare data for global C sink estimate ---------
@@ -31,6 +31,7 @@ source(here("R/calc_db.R"))
 
 # Collect global environmental covariates --------------
 filn <- here::here("data/global_drivers.rds")
+
 if (!file.exists(filn)){
   
   # From the WWF Ecoregions data
@@ -179,16 +180,19 @@ data_forest_plots_selfthinning_sds <- data_forest_plots_selfthinning |>
 # global fields of predictors for upscaling
 global_drivers <- readRDS(here::here("data/global_drivers.rds"))
 
-## Fit self-thinning model ----------------
-fit_selfthinning = lmer(
-  logDensity ~ scale(logQMD) + 
-    scale(year) * scale(ai) + 
-    scale(year) * scale(ndep) + 
-    scale(year) * scale(ORGC) + 
-    scale(year) * scale(PBR) + 
-    (1|dataset/plotID) + (1|species),  
-  data = data_forest_plots_selfthinning
-  )
+## Load fitted self-thinning model ----------------
+# produced with analysis/03_env_drivers.R
+fit_selfthinning <- readRDS(file = here::here("data/mod_lmer_env.rds"))
+
+# fit_selfthinning = lmer(
+#   logDensity ~ scale(logQMD) + 
+#     scale(year) * scale(ai) + 
+#     scale(year) * scale(ndep) + 
+#     scale(year) * scale(ORGC) + 
+#     scale(year) * scale(PBR) + 
+#     (1|dataset/plotID) + (1|species),  
+#   data = data_forest_plots_selfthinning
+#   )
 
 ## Fit relationship of biomass ~ N*QMD^2 ---------------------
 fit_biomass = lmer(
@@ -273,11 +277,6 @@ coef_samples_biomass <- MASS::mvrnorm(
   Sigma = vcov_matrix_biomass
 )
 
-# The samples are too narrowly distributed!
-coef_samples_biomass |> 
-  ggplot(aes(NQMD2)) + 
-  geom_density()
-
 # Combine to single data frame assuming the two are independent
 coef_samples <- coef_samples_selfthinning |> 
   bind_cols(
@@ -318,8 +317,7 @@ df_samples <- purrr::map_dfr(
 )
 
 
-# Calculate biomass difference for each sample -------------
-
+# Calculate biomass difference for each sample ---------------------------------
 filnam <- here::here(paste0("data/df_db_n_coef_", n_coef, "_n_qmd_", n_qmd, ".rds"))
 
 if (!file.exists(filnam)){

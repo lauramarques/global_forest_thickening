@@ -27,6 +27,7 @@ library(viridis)
 library(rnaturalearth)
 library(rnaturalearthdata)
 library(purrr)
+library(rsample)
 
 # Load functions ---------------------------------------------------------------
 # files <- list.files(path = "./R", pattern = "\\.R$", full.names = TRUE)
@@ -69,7 +70,8 @@ mod_lmm_biome1 = lmer(
   data = data_fil_biome1, 
   na.action = "na.exclude"
   )
-summary(mod_lmm_biome1)
+
+write_rds(mod_lmm_biome1, file = here::here("data/mod_lmm_biome1.rds"))
 
 #### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome1 <- plot_stl_bybiome(
@@ -161,7 +163,8 @@ mod_lmm_biome4 = lmer(
   data = data_fil_biome4, 
   na.action = "na.exclude"
 )
-summary(mod_lmm_biome4)
+
+write_rds(mod_lmm_biome4, file = here::here("data/mod_lmm_biome4.rds"))
 
 #### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome4 <- plot_stl_bybiome(
@@ -251,7 +254,8 @@ mod_lmm_biome5 = lmer(
   data = data_fil_biome5, 
   na.action = "na.exclude"
 )
-summary(mod_lmm_biome5)
+
+write_rds(mod_lmm_biome5, file = here::here("data/mod_lmm_biome5.rds"))
 
 #### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome5 <- plot_stl_bybiome(
@@ -342,6 +346,9 @@ mod_lmm_biome6 = lmer(
   na.action = "na.exclude"
 )
 
+write_rds(mod_lmm_biome6, file = here::here("data/mod_lmm_biome6.rds"))
+
+
 #### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome6 <- plot_stl_bybiome(
   data_fil_biome6, 
@@ -431,6 +438,9 @@ mod_lmm_biome12 = lmer(
   data = data_fil_biome12, 
   na.action = "na.exclude"
 )
+
+write_rds(mod_lmm_biome12, file = here::here("data/mod_lmm_biome12.rds"))
+
 
 #### Plot self-thinning line ----------------------------------------------------
 gg_stl_biome12 <- plot_stl_bybiome(
@@ -786,11 +796,6 @@ gg_fdisturbed_biome1 <- df_disturbed |>
     sec.axis = sec_axis(~ plogis(.), name = "Fraction disturbed")
   )
 
-# remove disturbed plots
-data_unm_biome_including_disturbed <- data_unm_biome
-data_unm_biome <- data_unm_biome |> 
-  filter(ndisturbed == 0)
-
 # Additional filter: remove plots with no change in ln(N)
 data_unm_biome <- data_unm_biome |>
   group_by(plotID) |>
@@ -798,7 +803,12 @@ data_unm_biome <- data_unm_biome |>
   # ggplot(aes(var_logdensity, after_stat(count))) + geom_histogram()
   filter(var_logdensity > 0.001)
 
-# no scaling on predictors
+# remove disturbed plots
+data_unm_biome_including_disturbed <- data_unm_biome
+data_unm_biome <- data_unm_biome |> 
+  filter(ndisturbed == 0)
+
+### LQMM fit -------------------------------------------------------------------
 fit_lqmm <- lqmm(
   logDensity ~ logQMD + year,
   random = ~1,
@@ -807,6 +817,41 @@ fit_lqmm <- lqmm(
   data = data_unm_biome,
   type = "normal"
 )
+
+write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome1.rds"))
+
+### Bootstrapping LQMM fit -----------------------------------------------------
+boot_data <- rsample::bootstraps(
+  data_unm_biome %>% 
+    group_by(plotID), 
+  times = 500, 
+  apparent = FALSE
+)
+
+# Apply model to each bootstrap sample
+boot_results <- boot_data %>%
+  mutate(coefs = map(splits, wrap_fit_lqmm)) %>%
+  filter(!map_lgl(coefs, is.null)) %>%  # drop failed fits
+  unnest(coefs) |>
+  dplyr::select(-splits)
+
+write_rds(boot_results, file = here::here("data/boot_results_biome1.rds"))
+
+boot_results |>
+  ggplot(aes(estimate)) +
+  geom_density() +
+  facet_wrap(~term, scales = "free", ncol = 1)
+
+# summarise across bootstraps
+summary_stats <- boot_results %>%
+  group_by(term) %>%
+  summarise(
+    estimate = mean(estimate),
+    std.error = sd(estimate),
+    ci_low = quantile(estimate, 0.025),
+    ci_high = quantile(estimate, 0.975),
+    .groups = "drop"
+  )
 
 ### Plot STL from LQMM ---------------------------------------------------------
 gg_lqmm_biome1 <- plot_lqmm_bybiome(
@@ -921,18 +966,18 @@ gg_fdisturbed_biome4 <- df_disturbed |>
     sec.axis = sec_axis(~ plogis(.), name = "Fraction disturbed")
   )
 
-# remove disturbed plots
-data_unm_biome_including_disturbed <- data_unm_biome
-data_unm_biome <- data_unm_biome |> 
-  filter(ndisturbed == 0)
-
 # Additional filter: remove plots with no change in ln(N)
 data_unm_biome <- data_unm_biome |>
   group_by(plotID) |>
   mutate(var_logdensity = diff(range(logDensity))) |>
   filter(var_logdensity > 0.001)
 
-# no scaling on predictors
+# remove disturbed plots
+data_unm_biome_including_disturbed <- data_unm_biome
+data_unm_biome <- data_unm_biome |> 
+  filter(ndisturbed == 0)
+
+### LQMM fit -------------------------------------------------------------------
 fit_lqmm <- lqmm(
   logDensity ~ logQMD + year,
   random = ~1,
@@ -945,6 +990,41 @@ fit_lqmm <- lqmm(
     LP_tol_ll = 5e-5
   )
 )
+
+write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome4.rds"))
+
+### Bootstrapping LQMM fit -----------------------------------------------------
+boot_data <- rsample::bootstraps(
+  data_unm_biome %>% 
+    group_by(plotID), 
+  times = 500, 
+  apparent = FALSE
+  )
+
+# Apply model to each bootstrap sample
+boot_results <- boot_data %>%
+  mutate(coefs = map(splits, wrap_fit_lqmm)) %>%
+  filter(!map_lgl(coefs, is.null)) %>%  # drop failed fits
+  unnest(coefs) |>
+  dplyr::select(-splits)
+
+write_rds(boot_results, file = here::here("data/boot_results_biome4.rds"))
+
+boot_results |>
+  ggplot(aes(estimate)) +
+  geom_density() +
+  facet_wrap(~term, scales = "free", ncol = 1)
+
+# summarise across bootstraps
+summary_stats <- boot_results %>%
+  group_by(term) %>%
+  summarise(
+    estimate = mean(estimate),
+    std.error = sd(estimate),
+    ci_low = quantile(estimate, 0.025),
+    ci_high = quantile(estimate, 0.975),
+    .groups = "drop"
+  )
 
 ### Plot STL from LQMM ---------------------------------------------------------
 gg_lqmm_biome4 <- plot_lqmm_bybiome(
@@ -1060,18 +1140,18 @@ gg_fdisturbed_biome5 <- df_disturbed |>
     sec.axis = sec_axis(~ plogis(.), name = "Fraction disturbed")
   )
 
-# remove disturbed plots
-data_unm_biome_including_disturbed <- data_unm_biome
-data_unm_biome <- data_unm_biome |> 
-  filter(ndisturbed == 0)
-
 # Additional filter: remove plots with no change in ln(N)
 data_unm_biome <- data_unm_biome |>
   group_by(plotID) |>
   mutate(var_logdensity = diff(range(logDensity))) |>
   filter(var_logdensity > 0.001)
 
-# no scaling on predictors
+# remove disturbed plots
+data_unm_biome_including_disturbed <- data_unm_biome
+data_unm_biome <- data_unm_biome |> 
+  filter(ndisturbed == 0)
+
+### LQMM fit -------------------------------------------------------------------
 fit_lqmm <- lqmm(
   logDensity ~ logQMD + year,
   random = ~1,
@@ -1080,6 +1160,41 @@ fit_lqmm <- lqmm(
   data = data_unm_biome,
   type = "normal"
 )
+
+write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome5.rds"))
+
+### Bootstrapping LQMM fit -----------------------------------------------------
+boot_data <- rsample::bootstraps(
+  data_unm_biome %>% 
+    group_by(plotID), 
+  times = 500, 
+  apparent = FALSE
+)
+
+# Apply model to each bootstrap sample
+boot_results <- boot_data %>%
+  mutate(coefs = map(splits, wrap_fit_lqmm)) %>%
+  filter(!map_lgl(coefs, is.null)) %>%  # drop failed fits
+  unnest(coefs) |>
+  dplyr::select(-splits)
+
+write_rds(boot_results, file = here::here("data/boot_results_biome5.rds"))
+
+boot_results |>
+  ggplot(aes(estimate)) +
+  geom_density() +
+  facet_wrap(~term, scales = "free", ncol = 1)
+
+# summarise across bootstraps
+summary_stats <- boot_results %>%
+  group_by(term) %>%
+  summarise(
+    estimate = mean(estimate),
+    std.error = sd(estimate),
+    ci_low = quantile(estimate, 0.025),
+    ci_high = quantile(estimate, 0.975),
+    .groups = "drop"
+  )
 
 ### Plot STL from LQMM ---------------------------------------------------------
 gg_lqmm_biome5 <- plot_lqmm_bybiome(
@@ -1193,18 +1308,18 @@ gg_fdisturbed_biome6 <- df_disturbed |>
     sec.axis = sec_axis(~ plogis(.), name = "Fraction disturbed")
   )
 
-# remove disturbed plots
-data_unm_biome_including_disturbed <- data_unm_biome
-data_unm_biome <- data_unm_biome |> 
-  filter(ndisturbed == 0)
-
 # Additional filter: remove plots with no change in ln(N)
 data_unm_biome <- data_unm_biome |>
   group_by(plotID) |>
   mutate(var_logdensity = diff(range(logDensity))) |>
   filter(var_logdensity > 0.001)
 
-# no scaling on predictors
+# remove disturbed plots
+data_unm_biome_including_disturbed <- data_unm_biome
+data_unm_biome <- data_unm_biome |> 
+  filter(ndisturbed == 0)
+
+### LQMM fit -------------------------------------------------------------------
 fit_lqmm <- lqmm(
   logDensity ~ logQMD + year,
   random = ~1,
@@ -1213,6 +1328,41 @@ fit_lqmm <- lqmm(
   data = data_unm_biome,
   type = "normal"
 )
+
+write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome6.rds"))
+
+### Bootstrapping LQMM fit -----------------------------------------------------
+boot_data <- rsample::bootstraps(
+  data_unm_biome %>% 
+    group_by(plotID), 
+  times = 500, 
+  apparent = FALSE
+)
+
+# Apply model to each bootstrap sample
+boot_results <- boot_data %>%
+  mutate(coefs = map(splits, wrap_fit_lqmm)) %>%
+  filter(!map_lgl(coefs, is.null)) %>%  # drop failed fits
+  unnest(coefs) |>
+  dplyr::select(-splits)
+
+write_rds(boot_results, file = here::here("data/boot_results_biome6.rds"))
+
+boot_results |>
+  ggplot(aes(estimate)) +
+  geom_density() +
+  facet_wrap(~term, scales = "free", ncol = 1)
+
+# summarise across bootstraps
+summary_stats <- boot_results %>%
+  group_by(term) %>%
+  summarise(
+    estimate = mean(estimate),
+    std.error = sd(estimate),
+    ci_low = quantile(estimate, 0.025),
+    ci_high = quantile(estimate, 0.975),
+    .groups = "drop"
+  )
 
 ### Plot STL from LQMM ---------------------------------------------------------
 gg_lqmm_biome6 <- plot_lqmm_bybiome(
@@ -1327,18 +1477,18 @@ gg_fdisturbed_biome12 <- df_disturbed |>
     sec.axis = sec_axis(~ plogis(.), name = "Fraction disturbed")
   )
 
-# remove disturbed plots
-data_unm_biome_including_disturbed <- data_unm_biome
-data_unm_biome <- data_unm_biome |> 
-  filter(ndisturbed == 0)
-
 # Additional filter: remove plots with no change in ln(N)
 data_unm_biome <- data_unm_biome |>
   group_by(plotID) |>
   mutate(var_logdensity = diff(range(logDensity))) |>
   filter(var_logdensity > 0.001)
 
-# no scaling on predictors
+# remove disturbed plots
+data_unm_biome_including_disturbed <- data_unm_biome
+data_unm_biome <- data_unm_biome |> 
+  filter(ndisturbed == 0)
+
+### LQMM fit -------------------------------------------------------------------
 fit_lqmm <- lqmm(
   logDensity ~ logQMD + year,
   random = ~1,
@@ -1347,6 +1497,41 @@ fit_lqmm <- lqmm(
   data = data_unm_biome,
   type = "normal"
 )
+
+write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome12.rds"))
+
+### Bootstrapping LQMM fit -----------------------------------------------------
+boot_data <- rsample::bootstraps(
+  data_unm_biome %>% 
+    group_by(plotID), 
+  times = 500, 
+  apparent = FALSE
+)
+
+# Apply model to each bootstrap sample
+boot_results <- boot_data %>%
+  mutate(coefs = map(splits, wrap_fit_lqmm)) %>%
+  filter(!map_lgl(coefs, is.null)) %>%  # drop failed fits
+  unnest(coefs) |>
+  dplyr::select(-splits)
+
+write_rds(boot_results, file = here::here("data/boot_results_biome12.rds"))
+
+boot_results |>
+  ggplot(aes(estimate)) +
+  geom_density() +
+  facet_wrap(~term, scales = "free", ncol = 1)
+
+# summarise across bootstraps
+summary_stats <- boot_results %>%
+  group_by(term) %>%
+  summarise(
+    estimate = mean(estimate),
+    std.error = sd(estimate),
+    ci_low = quantile(estimate, 0.025),
+    ci_high = quantile(estimate, 0.975),
+    .groups = "drop"
+  )
 
 ### Plot STL from LQMM ---------------------------------------------------------
 gg_lqmm_biome12 <- plot_lqmm_bybiome(

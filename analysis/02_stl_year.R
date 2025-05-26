@@ -1164,6 +1164,7 @@ fit_lqmm <- lqmm(
 write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome5.rds"))
 
 ### Bootstrapping LQMM fit -----------------------------------------------------
+# create bootstraps
 boot_data <- rsample::bootstraps(
   data_unm_biome %>% 
     group_by(plotID), 

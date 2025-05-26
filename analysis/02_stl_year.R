@@ -824,7 +824,7 @@ write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome1.rds"))
 boot_data <- rsample::bootstraps(
   data_unm_biome %>% 
     group_by(plotID), 
-  times = 500, 
+  times = 5000, 
   apparent = FALSE
 )
 
@@ -997,7 +997,7 @@ write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome4.rds"))
 boot_data <- rsample::bootstraps(
   data_unm_biome %>% 
     group_by(plotID), 
-  times = 500, 
+  times = 5000, 
   apparent = FALSE
   )
 
@@ -1168,7 +1168,7 @@ write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome5.rds"))
 boot_data <- rsample::bootstraps(
   data_unm_biome %>% 
     group_by(plotID), 
-  times = 500, 
+  times = 5000, 
   apparent = FALSE
 )
 
@@ -1336,7 +1336,7 @@ write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome6.rds"))
 boot_data <- rsample::bootstraps(
   data_unm_biome %>% 
     group_by(plotID), 
-  times = 500, 
+  times = 5000, 
   apparent = FALSE
 )
 
@@ -1505,7 +1505,7 @@ write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome12.rds"))
 boot_data <- rsample::bootstraps(
   data_unm_biome %>% 
     group_by(plotID), 
-  times = 500, 
+  times = 5000, 
   apparent = FALSE
 )
 

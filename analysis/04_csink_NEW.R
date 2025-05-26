@@ -29,20 +29,12 @@ get_samples_biomass_change_bybiome <- function(biome_number, data_fil_biomes, n_
     idx,
     df_biome,
     boot_results, 
-    n_sim_selfthinning,
     fixef_means_biomass,
     vcov_matrix_biomass,
     n_sim_plots
   ){
     
-    # Sample from multivariate normal distribution
-    coef_samples_selfthinning <- MASS::mvrnorm(
-      n = n_sim_selfthinning, 
-      mu = fixef_means_selfthinning, 
-      Sigma = vcov_matrix_selfthinning
-    )
-    
-    # extract coefficients from bootstrapping results
+    # extract sampled coefficients of the STL-model from bootstrapping results
     coef_samples_selfthinning <- boot_results |> 
       pivot_wider(
         names_from = "term",
@@ -51,7 +43,7 @@ get_samples_biomass_change_bybiome <- function(biome_number, data_fil_biomes, n_
       dplyr::select(-id) |> 
       as.matrix()
     
-    # generate coefficients from variance-covariance matrix
+    # generate a single sample of coefficients of the biomass model from variance-covariance matrix
     coef_samples_biomass <- MASS::mvrnorm(
       n = 1, 
       mu = fixef_means_biomass, 
@@ -131,7 +123,6 @@ get_samples_biomass_change_bybiome <- function(biome_number, data_fil_biomes, n_
       .,
       df_biome = data_fil_biome1,
       boot_results, 
-      n_sim_selfthinning = 1000,
       fixef_means_biomass,
       vcov_matrix_biomass,
       n_sim_plots = 30
@@ -171,6 +162,8 @@ ggplot() +
   khroma::scale_color_okabeito() +
   khroma::scale_fill_okabeito() +
   theme_classic()
+
+ggsave(here::here("manuscript/figures/csink_bybiome.pdf"), width = 6, height = 4)
 
 #---------------------------OLD BELOW-------------------------------------------
 

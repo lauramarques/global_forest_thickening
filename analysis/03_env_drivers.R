@@ -21,10 +21,13 @@ library(sp)
 library(lqmm)
 library(ggforce)
 library(MuMIn)
-# library(ingestr)
+library(ingestr)
 library(DescTools)
 library(corrplot)
 library(ggokabeito)
+
+remotes::install_github("https://github.com/valentinitnelav/plotbiomes")
+library(plotbiomes)
 
 # load data
 data_fil_biomes <- readRDS(here::here("data/data_fil_biomes.rds"))
@@ -37,17 +40,71 @@ data_fil_biomes <- data_fil_biomes |>
 M <- as.matrix(data_fil_biomes[,c(27,29,30,33)] %>% distinct())
 corrplot(cor(M, use="pairwise.complete.obs"), method="number")
 
+# Data distribution ------------------------------------------------------------
+settings_worldclim <- list(varnam = c("tavg", "prec"))
+
+df_plots <- data_fil_biomes |>
+  select(sitename = plotID, lon, lat) |>
+  distinct()
+
+df_worldclim <- ingest(
+  df_plots,
+  source    = "worldclim",
+  settings  = settings_worldclim,
+  dir       = "~/data/archive/worldclim_fick_2017/data/"
+)
+
+# mean over months
+df_worldclim_mean <- df_worldclim |>
+  mutate(
+    mat = purrr::map_dbl(data, ~mean(.$tavg)),
+    map = purrr::map_dbl(data, ~sum(.$prec))
+  ) |>
+  select(-data)
+
+ggplot() +
+  # add biome polygons
+  geom_polygon(data = Whittaker_biomes,
+               aes(x    = temp_c,
+                   y    = precp_cm,
+                   fill = biome),
+               # adjust polygon borders
+               colour = "gray98",
+               linewidth   = 0.5) +
+  theme_bw() +
+
+  # fill the polygons with predefined colors
+  scale_fill_manual(name   = "Whittaker biomes",
+                    breaks = names(Ricklefs_colors),
+                    labels = names(Ricklefs_colors),
+                    values = Ricklefs_colors) +
+
+  # add the temperature - precipitation data points
+  geom_point(
+    data = df_worldclim_mean,
+    aes(
+      x = mat,
+      y = map/10
+      ),
+    alpha  = 0.2
+    )
+
+# plotbiomes::whittaker_base_plot() +
+ggplot() +
+  geom_hex(data = df_worldclim_mean, aes(x = mat, y = map/10), bins = 50) +
+  theme_classic()
+
 # LMM with lmer() --------------------------------------------------------------
 ## Fit model -------------------------------------------------------------------
 # with all environmental factors and their interaction with time as predictors
 mod_lmer_env = lmer(
-  logDensity ~ scale(logQMD) + 
-    scale(year) * scale(ai) + 
-    scale(year) * scale(ndep) + 
-    scale(year) * scale(ORGC) + 
-    scale(year) * scale(PBR) + 
-    (1|dataset/plotID) + (1|species),  
-  data = data_fil_biomes, 
+  logDensity ~ scale(logQMD) +
+    scale(year) * scale(ai) +
+    scale(year) * scale(ndep) +
+    scale(year) * scale(ORGC) +
+    scale(year) * scale(PBR) +
+    (1|dataset/plotID) + (1|species),
+  data = data_fil_biomes,
   na.action = "na.exclude"
   )
 
@@ -88,9 +145,9 @@ saveRDS(mod_lmer_env, file = here::here("data/mod_lmer_env.rds"))
 saveRDS(df_coef_plot, file = here::here("data/df_coef_plot.rds"))
 
 ## Plot effects ----------------------------------------------------------------
-fig2a <- df_coef_plot |> 
+fig2a <- df_coef_plot |>
   slice(1:4) |>  # only main effects
-  ggplot() + 
+  ggplot() +
   geom_point(
     aes(
       x = varnew,
@@ -111,16 +168,16 @@ fig2a <- df_coef_plot |>
   theme_classic()  +
   scale_x_discrete(
     labels = c(
-      "MI" = "Moisture\n Index", 
-      "ORGC" = "Organic\n carbon", 
-      "Ndep" = "Nitrogen\n deposition", 
+      "MI" = "Moisture\n Index",
+      "ORGC" = "Organic\n carbon",
+      "Ndep" = "Nitrogen\n deposition",
       "PBR" = "Phosporus\n availability")
   ) +
   coord_flip()
 
-fig2b <- df_coef_plot |> 
+fig2b <- df_coef_plot |>
   slice(5:8) |>  # only main effects
-  ggplot() + 
+  ggplot() +
   geom_point(
     aes(
       x = varnew,
@@ -152,15 +209,15 @@ cowplot::plot_grid(
 )
 
 ggsave(
-  here::here("manuscript/figures/fig2.pdf"), 
-  width = 6, 
+  here::here("manuscript/figures/fig2.pdf"),
+  width = 6,
   height = 3
   )
 
 # # out-of-the-box method
 # plot_model(
-#   mod_lmer_env, 
-#   type = "est", 
+#   mod_lmer_env,
+#   type = "est",
 #   terms = c("scale(ai)", "scale(ndep)", "scale(ORGC)", "scale(PBR)"),
 #   title = "Scaled Predictors",
 #   se = TRUE,
@@ -175,15 +232,15 @@ AIC(mod_lmer_env)
 
 plot(allEffects(mod_lmer_env))
 
-ggplot() + 
+ggplot() +
   geom_point(
-    data = data_fil_biomes |> 
+    data = data_fil_biomes |>
       filter(country=="Switzerland"),
-    aes(x = year, y = ndep, color = dataset), 
-    alpha=0.5, 
-    size = 1.5, 
+    aes(x = year, y = ndep, color = dataset),
+    alpha=0.5,
+    size = 1.5,
     inherit.aes = FALSE
-  ) 
+  )
 
 plot_model(mod_lmer_env, type = "pred", show.data = TRUE, dot.size = 1.0, terms = c("logQMD","ai"))
 plot_model(mod_lmer_env, type = "pred", show.data = TRUE, dot.size = 1.0, terms = c("logQMD","ndep"))
@@ -199,17 +256,17 @@ plot_model(mod_lmer_env)
 
 # # with all environmental factors and their interaction with time as predictors
 # mod_lqmm_env <- lqmm(
-#   logDensity ~ logQMD + 
+#   logDensity ~ logQMD +
 #     year * ai +
 #     year * ndep +
-#     year * ORGC + 
+#     year * ORGC +
 #     year * PBR,
 #   random = ~1,
 #   group = plotID,
 #   tau = c(0.70, 0.90),
-#   data = data_fil_biomes |> 
-#     select(logQMD, logDensity, year, ai, ndep, ORGC, PBR, plotID) |> 
-#     drop_na() |> 
+#   data = data_fil_biomes |>
+#     select(logQMD, logDensity, year, ai, ndep, ORGC, PBR, plotID) |>
+#     drop_na() |>
 #     slice_sample(n = 10000),
 #   type = "normal",
 #   control = list(
@@ -217,20 +274,20 @@ plot_model(mod_lmer_env)
 #     LP_tol_ll = 1e-4
 #   )
 # )
-# 
+#
 
 ## Visualise fixed effects -----------------------------------------------------
-# out <- coef(mod_lqmm_env) |> 
-#   as.data.frame() |> 
-#   rownames_to_column(var = "var") |> 
+# out <- coef(mod_lqmm_env) |>
+#   as.data.frame() |>
+#   rownames_to_column(var = "var") |>
 #   select(var, value = `0.9`)
-# 
+#
 # # this takes too long
 # out <- summary(mod_lqmm_env)
-# 
-# 
+#
+#
 # pval(mod_lqmm_env)
-# 
+#
 # df_coef <- round(out$coefficients[,c(1,2,5)],4) |>
 #   as.data.frame() |>
 #   rename(
@@ -243,7 +300,7 @@ plot_model(mod_lmer_env)
 #          pvalue = ifelse(pval<0.05,"*", pvalue),
 #          pvalue = ifelse(pval<0.01,"**", pvalue),
 #          pvalue = ifelse(pval<0.001,"***",pvalue))
-# 
+#
 # df_coef_plot <- df_coef |>
 #   mutate(eff = ifelse(row_number() %in% 1:7, "Main effect", "Interaction terms"),
 #          eff = as_factor(eff)) |>
@@ -259,10 +316,10 @@ plot_model(mod_lmer_env)
 #          varnew = as_factor(varnew),
 #          varnew = fct_relevel(varnew,c("PBR","Ndep","ORGC","MI"))) |>
 #   filter(varnew == "MI"|varnew == "Ndep"|varnew ==  "PBR"|varnew == "ORGC")
-# 
-# fig2a <- df_coef_plot |> 
+#
+# fig2a <- df_coef_plot |>
 #   slice(1:4) |>  # only main effects
-#   ggplot() + 
+#   ggplot() +
 #   geom_point(
 #     aes(
 #       x = varnew,
@@ -283,16 +340,16 @@ plot_model(mod_lmer_env)
 #   theme_classic()  +
 #   scale_x_discrete(
 #     labels = c(
-#       "MI" = "Moisture\n Index", 
-#       "ORGC" = "Organic\n carbon", 
-#       "Ndep" = "Nitrogen\n deposition", 
+#       "MI" = "Moisture\n Index",
+#       "ORGC" = "Organic\n carbon",
+#       "Ndep" = "Nitrogen\n deposition",
 #       "PBR" = "Phosporus\n availability")
 #   ) +
 #   coord_flip()
-# 
-# fig2b <- df_coef_plot |> 
+#
+# fig2b <- df_coef_plot |>
 #   slice(5:8) |>  # only main effects
-#   ggplot() + 
+#   ggplot() +
 #   geom_point(
 #     aes(
 #       x = varnew,
@@ -315,16 +372,16 @@ plot_model(mod_lmer_env)
 #     labels = NULL
 #   ) +
 #   coord_flip()
-# 
+#
 # cowplot::plot_grid(
 #   fig2a,
 #   fig2b,
 #   labels = letters[1:2],
 #   rel_widths = c(1, 0.83)
 # )
-# 
+#
 # ggsave(
-#   here::here("manuscript/figures/fig2.pdf"), 
-#   width = 6, 
+#   here::here("manuscript/figures/fig2.pdf"),
+#   width = 6,
 #   height = 3
 # )

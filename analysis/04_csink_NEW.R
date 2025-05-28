@@ -134,11 +134,11 @@ get_samples_biomass_change_bybiome <- function(biome_number, data_fil_biomes, n_
 }
 
 
-get_samples_biomass_change_bybiome(
-  biome_number = 1, 
-  data_fil_biomes, 
-  n_sim_biomass = 30
-)
+# get_samples_biomass_change_bybiome(
+#   biome_number = 1, 
+#   data_fil_biomes, 
+#   n_sim_biomass = 30
+# )
 
 df <- purrr::map_dfr(
   as.list(c(1, 4, 5, 6, 12)),

@@ -39,9 +39,9 @@ terra::writeRaster(biomes_raster, filename = here::here("data/biomes/biomes_rast
 coast <- rnaturalearth::ne_coastline(scale = 110, returnclass = "sf")
 
 # Plot map ----------------
-data_biomes_fil <- readRDS(file.path(here::here(), "/data/inputs/final/data_biomes_fil.rds"))
-summary(data_biomes_fil$plotsize)
-data_biomes_fil_unique_plots <- data_biomes_fil |>
+data_unm <- readRDS(file.path(here::here(), "/data/inputs/data_unm.rds"))
+summary(data_unm$plotsize)
+data_unm_unique_plots <- data_unm |>
   distinct(plotID, lat, lon)
 
 gg <- ggplot() +
@@ -66,13 +66,12 @@ gg <- ggplot() +
       "Temperate Conifer Forests"                                    = "lightseagreen", 
       #"Temperate Grasslands, Savannas and Shrublands"                = "goldenrod3", 
       #"Tropical and Subtropical Coniferous Forests"                  = "#31A278", 
-      #"Tropical and Subtropical Dry Broadleaf Forests"               = "darkolivegreen", 
-      #"Tropical and Subtropical Grasslands, Savannas and Shrublands" = "goldenrod4", 
+      "Tropical and Subtropical Dry Broadleaf Forests"               = "goldenrod4", 
+      #"Tropical and Subtropical Grasslands, Savannas and Shrublands" = "darkolivegreen",
       "Tropical and Subtropical Moist Broadleaf Forests"             = "springgreen3"),
       na.value = "white",
       breaks = ~ .x[!is.na(.x)]) + 
-  #geom_point(aes(lon, lat), data = data_biomes_fil_unique_latlon, color="red",alpha = .7, shape=1,size=1.2) + 
-  geom_point(aes(lon, lat), data = data_biomes_fil_unique_latlon, color="red",fill = "white",alpha = .7, shape=21,size=1.2) + 
+  geom_point(aes(lon, lat), data = data_unm_unique_plots, color="red",fill = "white",alpha = .7, shape=21,size=1.2) + 
   #geom_count(aes(lon, lat), data = data_biomes_fil_unique_plots, color="red",alpha = .6) +
   #scale_size_area() +
   #geom_hex(aes(lon, lat, color = biome), data = data_biomes_fil, bins = 50, linewidth = 1) +

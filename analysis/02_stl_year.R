@@ -875,13 +875,15 @@ data_unm_biome <- data_unm_biome |>
   filter(ndisturbed == 0)
 
 ### LQMM fit -------------------------------------------------------------------
+set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ logQMD + year,
+  logDensity ~ scale(logQMD) + scale(year),
   random = ~1,
   group = plotID,
   tau = c(0.70, 0.90),
   data = data_unm_biome,
-  type = "normal"
+  type = "normal",
+  control = lqmmControl(startQR = TRUE)
 )
 summary(fit_lqmm)
 
@@ -1049,13 +1051,15 @@ data_unm_biome <- data_unm_biome |>
   filter(ndisturbed == 0)
 
 ### LQMM fit -------------------------------------------------------------------
+set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ logQMD + year,
+  logDensity ~ scale(logQMD) + scale(year),
   random = ~1,
   group = plotID,
   tau = c(0.70, 0.90),
   data = data_unm_biome,
-  type = "normal"
+  type = "normal",
+  control = lqmmControl(startQR = TRUE)
 )
 summary(fit_lqmm)
 
@@ -1222,17 +1226,16 @@ data_unm_biome <- data_unm_biome |>
   filter(ndisturbed == 0)
 
 ### LQMM fit -------------------------------------------------------------------
+set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ logQMD + year,
+  logDensity ~ scale(logQMD) + scale(year),
   random = ~1,
   group = plotID,
   tau = c(0.70, 0.90),
   data = data_unm_biome,
   type = "normal",
-  control = list(
-    LP_max_iter = 1000,
-    LP_tol_ll = 5e-5
-  )
+  #control = list(LP_max_iter = 1000, LP_tol_ll = 5e-5),
+  control = lqmmControl(startQR = TRUE)
 )
 summary(fit_lqmm)
 
@@ -1400,13 +1403,15 @@ data_unm_biome <- data_unm_biome |>
   filter(ndisturbed == 0)
 
 ### LQMM fit -------------------------------------------------------------------
+set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ logQMD + year,
+  logDensity ~ scale(logQMD) + scale(year),
   random = ~1,
   group = plotID,
   tau = c(0.70, 0.90),
   data = data_unm_biome,
-  type = "normal"
+  type = "normal",
+  control = lqmmControl(startQR = TRUE)
 )
 summary(fit_lqmm)
 
@@ -1573,15 +1578,16 @@ data_unm_biome <- data_unm_biome |>
   filter(ndisturbed == 0)
 
 ### LQMM fit -------------------------------------------------------------------
+set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ logQMD + year,
+  logDensity ~ scale(logQMD) + scale(year),
   random = ~1,
   group = plotID,
   tau = c(0.70, 0.90),
   data = data_unm_biome,
-  type = "normal"
+  type = "normal",
+  control = lqmmControl(startQR = TRUE)
 )
-
 summary(fit_lqmm)
 
 write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome6.rds"))
@@ -1747,15 +1753,16 @@ data_unm_biome <- data_unm_biome |>
   filter(ndisturbed == 0)
 
 ### LQMM fit -------------------------------------------------------------------
+set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ logQMD + year,
+  logDensity ~ scale(logQMD) + scale(year),
   random = ~1,
   group = plotID,
   tau = c(0.70, 0.90),
   data = data_unm_biome,
-  type = "normal"
+  type = "normal",
+  control = lqmmControl(startQR = TRUE)
 )
-
 summary(fit_lqmm)
 
 write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome12.rds"))

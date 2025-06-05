@@ -1,5 +1,11 @@
 plot_lqmm_bybiome <- function(data, mod, name, plot_legend = FALSE){
   
+  # Extract means and SDs from the training data
+  logQMD_mean <- mean(data$logQMD)
+  logQMD_sd <- sd(data$logQMD)
+  year_mean <- mean(data$year)
+  year_sd <- sd(data$year)
+  
   # predict STL as 70% and 90% quantiles from regression fit for three chosen years
   df_pred <- purrr::map_dfr(
     as.list(c(1985, 2000, 2015)),
@@ -8,27 +14,36 @@ plot_lqmm_bybiome <- function(data, mod, name, plot_legend = FALSE){
       year = .x,
       plotID = unique(data$plotID)[1]  # may take any value here, as long as predict(..., level = 0)
     )
-  ) %>%
+  ) |> 
     mutate(
-      pred_70 =  predict(
-        mod,
+      #pred_70 =  predict(
+      #  mod,
+      #  level = 0,
+      #  newdata = .
+      #)[,"0.7"],
+      #pred_90 =  predict(
+      #  mod,
+      #  level = 0,
+      #  newdata = .
+      #)[,"0.9"])
+      logQMD_sc = (logQMD - logQMD_mean) / logQMD_sd,
+      year_sc = (year - year_mean) / year_sd
+    ) |> 
+    mutate(
+      pred_90 = predict(
+        fit_lqmm,
         level = 0,
-        newdata = .
-      )[,"0.7"],
-      pred_90 =  predict(
-        mod,
-        level = 0,
-        newdata = .
-      )[,"0.9"]
+        newdata = cur_data_all()
+      )
     ) |> 
     mutate(year = as.factor(year))
-  
+
   # extract fit info
   out <- summary(mod)
   df_caption <- tibble(
-    variable = c("year"),
-    estimate = out$tTable$`0.9`[c("year"), "Value"],
-    pvalue = out$tTable$`0.9`[c("year"), "Pr(>|t|)"]
+    variable = c("year_sc"),
+    estimate = out$tTable[c("year_sc"), "Value"], #out$tTable$`0.9`[c("year"), "Value"],
+    pvalue = out$tTable[c("year_sc"), "Pr(>|t|)"] #out$tTable$`0.9`[c("year"), "Pr(>|t|)"]
   ) |> 
     mutate(
       estimate_lab = round(estimate, 3),

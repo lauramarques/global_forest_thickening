@@ -824,7 +824,9 @@ data_unm <- readRDS(here::here("data/data_unm.rds"))
 
 ## Biome 1 Tropical & Subtropical Moist Broadleaf Forests ----------------------
 data_unm_biome <- data_unm |> 
-  filter(biomeID == 1)
+  filter(biomeID == 1) |>
+  mutate(year_sc = scale(year),
+         logQMD_sc = scale(logQMD))
 
 ### Identify disturbed plots ---------------------------------------------------
 data_unm_biome <- data_unm_biome |> 
@@ -877,14 +879,15 @@ data_unm_biome <- data_unm_biome |>
 ### LQMM fit -------------------------------------------------------------------
 set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ scale(logQMD) + scale(year),
+  logDensity ~ logQMD_sc + year_sc,
   random = ~1,
   group = plotID,
-  tau = c(0.70, 0.90),
+  tau = 0.9, #c(0.70, 0.90),
   data = data_unm_biome,
   type = "normal",
   control = lqmmControl(startQR = TRUE)
 )
+
 summary(fit_lqmm)
 
 write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome1.rds"))
@@ -1000,7 +1003,9 @@ gg_lqmm_biome1_both
 
 ## Biome 2 Tropical & Subtropical Dry Broadleaf Forests ------------------------
 data_unm_biome <- data_unm |> 
-  filter(biomeID == 2)
+  filter(biomeID == 2) |>
+  mutate(year_sc = scale(year),
+         logQMD_sc = scale(logQMD))
 
 ### Identify disturbed plots ---------------------------------------------------
 data_unm_biome <- data_unm_biome |> 
@@ -1053,10 +1058,10 @@ data_unm_biome <- data_unm_biome |>
 ### LQMM fit -------------------------------------------------------------------
 set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ scale(logQMD) + scale(year),
+  logDensity ~ logQMD_sc + year_sc,
   random = ~1,
   group = plotID,
-  tau = c(0.70, 0.90),
+  tau = 0.90,
   data = data_unm_biome,
   type = "normal",
   control = lqmmControl(startQR = TRUE)
@@ -1176,7 +1181,9 @@ gg_lqmm_biome2_both
 
 ## Biome 4 Temperate Broadleaf & Mixed Forests ---------------------------------
 data_unm_biome <- data_unm |> 
-  filter(biomeID == 4)
+  filter(biomeID == 4) |>
+  mutate(year_sc = scale(year),
+         logQMD_sc = scale(logQMD))
 
 ### Identify disturbed plots ---------------------------------------------------
 data_unm_biome <- data_unm_biome |> 
@@ -1228,10 +1235,10 @@ data_unm_biome <- data_unm_biome |>
 ### LQMM fit -------------------------------------------------------------------
 set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ scale(logQMD) + scale(year),
+  logDensity ~ logQMD_sc + year_sc,
   random = ~1,
   group = plotID,
-  tau = c(0.70, 0.90),
+  tau = 0.90,
   data = data_unm_biome,
   type = "normal",
   #control = list(LP_max_iter = 1000, LP_tol_ll = 5e-5),
@@ -1353,7 +1360,9 @@ gg_lqmm_biome4_both
 
 ## Biome 5  Temperate Conifer Forests Forest -----------------------------------
 data_unm_biome <- data_unm |> 
-  filter(biomeID == 5)
+  filter(biomeID == 5) |>
+  mutate(year_sc = scale(year),
+         logQMD_sc = scale(logQMD))
 
 ### Identify disturbed plots ---------------------------------------------------
 data_unm_biome <- data_unm_biome |> 
@@ -1405,10 +1414,10 @@ data_unm_biome <- data_unm_biome |>
 ### LQMM fit -------------------------------------------------------------------
 set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ scale(logQMD) + scale(year),
+  logDensity ~ logQMD_sc + year_sc,
   random = ~1,
   group = plotID,
-  tau = c(0.70, 0.90),
+  tau = 0.90,
   data = data_unm_biome,
   type = "normal",
   control = lqmmControl(startQR = TRUE)
@@ -1528,7 +1537,9 @@ gg_lqmm_biome5_both
 
 ## Biome 6 Boreal Forests/Taiga Forest ----------------------
 data_unm_biome <- data_unm |> 
-  filter(biomeID == 6)
+  filter(biomeID == 6) |>
+  mutate(year_sc = scale(year),
+         logQMD_sc = scale(logQMD))
 
 ### Identify disturbed plots ---------------------------------------------------
 data_unm_biome <- data_unm_biome |> 
@@ -1580,10 +1591,10 @@ data_unm_biome <- data_unm_biome |>
 ### LQMM fit -------------------------------------------------------------------
 set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ scale(logQMD) + scale(year),
+  logDensity ~ logQMD_sc + year_sc,
   random = ~1,
   group = plotID,
-  tau = c(0.70, 0.90),
+  tau = 0.90,
   data = data_unm_biome,
   type = "normal",
   control = lqmmControl(startQR = TRUE)
@@ -1703,7 +1714,9 @@ gg_lqmm_biome6_both
 
 ## Biome 12 Mediterranean Forests ----------------------
 data_unm_biome <- data_unm |> 
-  filter(biomeID == 12)
+  filter(biomeID == 12) |>
+  mutate(year_sc = scale(year),
+         logQMD_sc = scale(logQMD))
 
 ### Identify disturbed plots ---------------------------------------------------
 data_unm_biome <- data_unm_biome |> 
@@ -1755,10 +1768,10 @@ data_unm_biome <- data_unm_biome |>
 ### LQMM fit -------------------------------------------------------------------
 set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ scale(logQMD) + scale(year),
+  logDensity ~ logQMD_sc + year_sc,
   random = ~1,
   group = plotID,
-  tau = c(0.70, 0.90),
+  tau = 0.90,
   data = data_unm_biome,
   type = "normal",
   control = lqmmControl(startQR = TRUE)

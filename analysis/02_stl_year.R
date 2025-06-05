@@ -887,7 +887,6 @@ fit_lqmm <- lqmm(
   type = "normal",
   control = lqmmControl(startQR = TRUE)
 )
-
 summary(fit_lqmm)
 
 write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome1.rds"))
@@ -995,7 +994,7 @@ gg_lqmm_biome1_both <- cowplot::plot_grid(
   ncol = 1,
   rel_heights = c(1, 0.4),
   align = "v",
-  labels = c("",  "d"),
+  labels = c("",  "g"),
   label_y = 1.1
 )
 
@@ -1107,7 +1106,7 @@ summary_stats <- boot_results %>%
 gg_lqmm_biome2 <- plot_lqmm_bybiome(
   data_unm_biome,
   fit_lqmm, 
-  name = bquote(bold("a") ~~ "Tropical Dry Broadleaf Forests")
+  name = bquote(bold("b") ~~ "Tropical Dry Broadleaf Forests")
 )
 gg_lqmm_biome2
 
@@ -1173,7 +1172,7 @@ gg_lqmm_biome2_both <- cowplot::plot_grid(
   ncol = 1,
   rel_heights = c(1, 0.4),
   align = "v",
-  labels = c("",  "d"),
+  labels = c("",  "h"),
   label_y = 1.1
 )
 
@@ -1285,7 +1284,7 @@ summary_stats <- boot_results %>%
 gg_lqmm_biome4 <- plot_lqmm_bybiome(
   data_unm_biome,
   fit_lqmm, 
-  name = bquote(bold("b") ~~ "Temperate Broadleaf & Mixed Forests")
+  name = bquote(bold("c") ~~ "Temperate Broadleaf & Mixed Forests")
 )
 gg_lqmm_biome4
 
@@ -1351,7 +1350,7 @@ gg_lqmm_biome4_both <- cowplot::plot_grid(
   gg_lqmm_biome4_byqmdbin,
   ncol = 1,
   rel_heights = c(1, 0.4),
-  labels = c("",  "e"),
+  labels = c("",  "i"),
   align = "v",
   label_y = 1.1
 )
@@ -1464,7 +1463,7 @@ summary_stats <- boot_results %>%
 gg_lqmm_biome5 <- plot_lqmm_bybiome(
   data_unm_biome,
   fit_lqmm, 
-  name = bquote(bold("c") ~~ "Temperate Conifer Forests Forest"))
+  name = bquote(bold("d") ~~ "Temperate Conifer Forest"))
 
 gg_lqmm_biome5  
 
@@ -1529,13 +1528,13 @@ gg_lqmm_biome5_both <- cowplot::plot_grid(
   gg_lqmm_biome5_byqmdbin,
   ncol = 1,
   rel_heights = c(1, 0.4),
-  labels = c("",  "f"),
+  labels = c("",  "j"),
   align = "v",
   label_y = 1.1
 )
 gg_lqmm_biome5_both
 
-## Biome 6 Boreal Forests/Taiga Forest ----------------------
+## Biome 6 Boreal Forests/Taiga ------------------------------------------------
 data_unm_biome <- data_unm |> 
   filter(biomeID == 6) |>
   mutate(year_sc = scale(year),
@@ -1570,7 +1569,7 @@ gg_fdisturbed_biome6 <- df_disturbed |>
   theme_classic() +
   labs(
     x = "Year",  
-    title = bquote(bold("d") ~~ "Boreal Forests/Taiga Forest")
+    title = bquote(bold("d") ~~ "Boreal Forests/Taiga")
   ) +
   scale_y_continuous(
     name = expression(logit(Fraction ~ disturbed)),
@@ -1597,7 +1596,11 @@ fit_lqmm <- lqmm(
   tau = 0.90,
   data = data_unm_biome,
   type = "normal",
-  control = lqmmControl(startQR = TRUE)
+  control = lqmmControl(
+    LP_max_iter = 1000,     # increase max iterations
+    LP_tol_ll = 1e-4,       # relax tolerance slightly (default is 1e-5)
+    startQR = TRUE          # good to keep this TRUE
+)
 )
 summary(fit_lqmm)
 
@@ -1640,7 +1643,7 @@ summary_stats <- boot_results %>%
 gg_lqmm_biome6 <- plot_lqmm_bybiome(
   data_unm_biome,
   fit_lqmm, 
-  name = bquote(bold("g") ~~ "Boreal Forests/Taiga Forest")
+  name = bquote(bold("e") ~~ "Boreal Forests/Taiga")
 )
 
 gg_lqmm_biome6
@@ -1706,7 +1709,7 @@ gg_lqmm_biome6_both <- cowplot::plot_grid(
   gg_lqmm_biome6_byqmdbin,
   ncol = 1,
   rel_heights = c(1, 0.4),
-  labels = c("",  "i"),
+  labels = c("",  "k"),
   align = "v",
   label_y = 1.1
 )
@@ -1817,7 +1820,7 @@ summary_stats <- boot_results %>%
 gg_lqmm_biome12 <- plot_lqmm_bybiome(
   data_unm_biome,
   fit_lqmm, 
-  name = bquote(bold("h") ~~ "Mediterranean Forests")
+  name = bquote(bold("f") ~~ "Mediterranean Forests")
 )
 
 ### Within QMD bins ----------------------------------------
@@ -1881,17 +1884,18 @@ gg_lqmm_biome12_both <- cowplot::plot_grid(
   gg_lqmm_biome12_byqmdbin,
   ncol = 1,
   rel_heights = c(1, 0.4),
-  labels = c("",  "j"),
+  labels = c("",  "l"),
   align = "v",
   label_y = 1.1
 )
+gg_lqmm_biome12_both
 
 # Publication figures ----------------------------------------------------------
 ## Figure 1 --------------------------------------------------------------------
 ### No interactions ------------------------------------------------------------
 legend <- get_legend(
   gg_stl_biome1 + 
-    theme(legend.position = "right")
+    theme(legend.position = "bottom")
 )
 
 fig1 <- cowplot::plot_grid(
@@ -1956,6 +1960,7 @@ legend <- get_legend(
     theme(legend.position = "right")
 )
 
+# Arrange the 9 plots in a 3x3 grid
 fig1_lqmm <- cowplot::plot_grid(
   gg_lqmm_biome1_both, 
   gg_lqmm_biome2_both, 
@@ -1963,20 +1968,17 @@ fig1_lqmm <- cowplot::plot_grid(
   gg_lqmm_biome5_both, 
   gg_lqmm_biome6_both, 
   gg_lqmm_biome12_both,
-  #legend,
   ncol = 3
 )
-
-fig1_lqmm <- gg_lqmm_biome1_both + 
-  gg_lqmm_biome2_both + 
-  gg_lqmm_biome4_both + 
-  gg_lqmm_biome5_both + 
-  gg_lqmm_biome6_both + 
-  gg_lqmm_biome12_both +
-  plot_layout(ncol = 3, guides = "collect") & 
-  theme(legend.position = 'bottom') + 
-  plot_annotation(tag_levels = "a",tag_suffix = ")")
 fig1_lqmm
+
+# Combine grid and legend
+fig1_lqmm <- cowplot::plot_grid(
+  fig1_lqmm, 
+  legend, 
+  ncol = 2, 
+  rel_widths = c(1, 0.2)
+  )
 
 ggsave(
   filename = here::here("manuscript/figures/fig1_lqmm.pdf"),

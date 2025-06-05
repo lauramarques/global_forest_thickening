@@ -98,6 +98,7 @@ plot_lqmm_bybiome <- function(data, mod, name, plot_legend = FALSE){
       plot.caption = element_text(vjust = -1),
       plot.title.position = "plot"
     ) +
+    #guides(color = guide_legend(direction = "horizontal")) +
     scale_x_continuous(limits = c(2.4, 4.5)) +
     scale_y_continuous(limits = c(2.9,9.3), breaks = seq(4,8,2))
   

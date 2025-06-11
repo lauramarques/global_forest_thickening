@@ -52,8 +52,6 @@ plot_stl_fil
 # STL LMM without interactions--------------------------------------------------
 ## Biome 1: Tropical & Subtropical Moist Broadleaf Forests  ---------------------
 
-# XXX In my interpretation because I don't have the file above, and as far as I 
-# can see, these are identical:
 # waldo::compare(
 #   readRDS(here::here("data/data_fil_biome1.rds")), 
 #   data_fil_biomes |>
@@ -879,7 +877,7 @@ data_unm_biome <- data_unm_biome |>
 ### LQMM fit -------------------------------------------------------------------
 set.seed(123)
 fit_lqmm <- lqmm(
-  logDensity ~ logQMD_sc + year_sc,
+  logDensity ~ logQMD_sc * year_sc,
   random = ~1,
   group = plotID,
   tau = 0.9, #c(0.70, 0.90),
@@ -890,6 +888,39 @@ fit_lqmm <- lqmm(
 summary(fit_lqmm)
 
 write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome1.rds"))
+
+#### STL shift ------------------------------------------------------------------
+# Estimated change in N per unit increase in year
+
+out <- summary(fit_lqmm)
+
+# Extract model coefficient
+beta_year_sc <- out$tTable[c("year_sc"), "Value"]
+
+# SD of the original (unscaled) year variable
+sd_year <- sd(data_unm_biome$year, na.rm = TRUE)
+
+# Change in logDensity per calendar year
+real_coef_year <- beta_year_sc * sd_year
+
+# Convert to % change in tree density per year
+percent_change_per_year <- (exp(real_coef_year) - 1) * 100
+
+# Opt 2: predicted logDensity at two years differing by one year (in scaled units)
+
+# Pick a fixed value for logQMD_sc (e.g., mean)
+mean_logQMD_sc <- mean(data_unm_biome$logQMD_sc, na.rm = TRUE)
+sd_year <- sd(data_unm_biome$year, na.rm = TRUE)
+
+# Predict at year_sc = 0 and year_sc = 1 / sd_year (since one calendar year corresponds to 1/sd_year in scaled units)
+newdata1 <- data.frame(logQMD_sc = mean_logQMD_sc, year_sc = 0, plotID = data_unm_biome$plotID[1])
+newdata2 <- data.frame(logQMD_sc = mean_logQMD_sc, year_sc = 1 / sd_year, plotID = data_unm_biome$plotID[1])
+
+pred1 <- predict(fit_lqmm, newdata = newdata1)
+pred2 <- predict(fit_lqmm, newdata = newdata2)
+
+delta_logDensity <- pred2 - pred1
+percent_change <- (exp(delta_logDensity) - 1) * 100
 
 ### Bootstrapping LQMM fit -----------------------------------------------------
 boot_data <- rsample::bootstraps(
@@ -1068,6 +1099,11 @@ fit_lqmm <- lqmm(
 summary(fit_lqmm)
 
 write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome2.rds"))
+
+#### STL shift ------------------------------------------------------------------
+# Estimated change in N per unit increase in year
+
+
 
 ### Bootstrapping LQMM fit -----------------------------------------------------
 boot_data <- rsample::bootstraps(
@@ -1783,6 +1819,41 @@ summary(fit_lqmm)
 
 write_rds(fit_lqmm, file = here::here("data/fit_lqmm_biome12.rds"))
 
+#### STL shift ------------------------------------------------------------------
+# Opt 1: estimated change in N per unit increase in year
+
+out <- summary(fit_lqmm)
+
+sd(data_unm_biome$year_sc)
+
+# Extract model coefficient
+beta_year_sc <- out$tTable[c("year_sc"), "Value"]
+
+# SD of the original (unscaled) year variable
+sd_year <- sd(data_unm_biome$year, na.rm = TRUE)
+
+# Change in logDensity per calendar year
+real_coef_year <- beta_year_sc * sd_year
+
+# Convert to % change in tree density per year
+percent_change_per_year <- (exp(real_coef_year) - 1) * 100
+
+# Opt 2: predicted logDensity at two years differing by one year (in scaled units)
+
+# Pick a fixed value for logQMD_sc (e.g., mean)
+mean_logQMD_sc <- mean(data_unm_biome$logQMD_sc, na.rm = TRUE)
+sd_year <- sd(data_unm_biome$year, na.rm = TRUE)
+
+# Predict at year_sc = 0 and year_sc = 1 / sd_year (since one calendar year corresponds to 1/sd_year in scaled units)
+newdata1 <- data.frame(logQMD_sc = mean_logQMD_sc, year_sc = 0, plotID = data_unm_biome$plotID[1])
+newdata2 <- data.frame(logQMD_sc = mean_logQMD_sc, year_sc = 1 / sd_year, plotID = data_unm_biome$plotID[1])
+
+pred1 <- predict(fit_lqmm, newdata = newdata1)
+pred2 <- predict(fit_lqmm, newdata = newdata2)
+
+delta_logDensity <- pred2 - pred1
+percent_change <- (exp(delta_logDensity) - 1) * 100
+
 ### Bootstrapping LQMM fit -----------------------------------------------------
 boot_data <- rsample::bootstraps(
   data_unm_biome %>% 
@@ -1822,6 +1893,7 @@ gg_lqmm_biome12 <- plot_lqmm_bybiome(
   fit_lqmm, 
   name = bquote(bold("f") ~~ "Mediterranean Forests")
 )
+gg_lqmm_biome12
 
 ### Within QMD bins ----------------------------------------
 # Test whether upward shift of 90% quantile is significant within logQMD-bins
